@@ -60,6 +60,10 @@ h3 { font-size: 1.8rem; }
 .card-body h3 { color: var(--ink); font-size: 1.75rem; }
 .card-body p { margin: 0; color: #58646d; }
 .learn { color: var(--ink); font-weight: 800; margin-top: .35rem; }
+.product-price { display: inline-flex; align-items: center; width: fit-content; color: var(--ink); font-weight: 900; letter-spacing: .04em; }
+.card-price { font-size: 1.05rem; color: var(--gold); margin-top: -.2rem; }
+.detail-price { font-size: 1.55rem; color: var(--ink); margin: -.15rem 0 1rem; }
+
 .values-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .value-card { background: rgba(255,255,255,.58); border: 1px solid var(--line); border-radius: 22px; padding: 1.25rem; }
 .value-card strong { display: block; color: var(--ink); margin-bottom: .35rem; }
