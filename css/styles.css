@@ -121,3 +121,18 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
 .accent-lip h1, .accent-lip .detail-title { color: #355c48; }
 .small-note { font-size: .95rem !important; margin-top: .6rem; }
 .small-note a { color: var(--ink); font-weight: 800; }
+
+.shop-nav a { border: 1px solid var(--ink); border-radius: 999px; padding: .55rem .8rem !important; background: var(--ink); color: white !important; }
+.shop-nav a:hover { border-color: var(--koi-pink); background: var(--koi-pink); color: white !important; }
+.shop-callout { padding: 0 0 4.5rem; }
+.shop-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1.4rem; align-items: center; padding: 1.4rem; border-radius: 28px; border: 1px solid var(--line); background: rgba(255,255,255,.72); box-shadow: 0 14px 40px rgba(39,51,65,.08); }
+.shop-panel h2 { font-size: clamp(2rem, 4vw, 3.2rem); margin-bottom: .45rem; }
+.shop-panel p { margin: 0; color: #53616a; max-width: 760px; }
+.size-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 1.7rem 0; }
+.size-card { padding: 1.15rem; border-radius: 22px; border: 1px solid var(--line); background: rgba(255,255,255,.72); box-shadow: 0 10px 30px rgba(39,51,65,.07); }
+.size-card h3 { font-size: 1.55rem; margin-bottom: .35rem; }
+.size-card p { margin: .35rem 0; }
+.size-card .product-price { margin: .35rem 0 .9rem; color: var(--gold); font-size: 1.25rem; }
+@media (max-width: 680px) {
+  .shop-panel, .size-options { grid-template-columns: 1fr; }
+}
