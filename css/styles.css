@@ -117,3 +117,7 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
   .site-footer { grid-template-columns: 1fr; }
   .footer-links { flex-wrap: wrap; }
 }
+
+.accent-lip h1, .accent-lip .detail-title { color: #355c48; }
+.small-note { font-size: .95rem !important; margin-top: .6rem; }
+.small-note a { color: var(--ink); font-weight: 800; }
