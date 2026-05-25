@@ -149,3 +149,6 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
   .shop-nav a { width: 100%; }
   .size-switcher { flex-direction: column; }
 }
+
+.flavor-options .button { margin-top: .4rem; }
+.accent-cbd h1, .accent-cbd .detail-title { color: var(--ink); }
