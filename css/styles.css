@@ -152,3 +152,19 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
 
 .flavor-options .button { margin-top: .4rem; }
 .accent-cbd h1, .accent-cbd .detail-title { color: var(--ink); }
+
+
+/* 2026 product expansion updates */
+.product-section-stack { display: grid; gap: 3.5rem; }
+.product-category-block { scroll-margin-top: 95px; }
+.product-category-block .section-head { margin-bottom: 1.2rem; }
+.section-lead { margin-top: .5rem; }
+.category-jump { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1.3rem; }
+.category-jump a { border: 1px solid var(--line); border-radius: 999px; padding: .55rem .85rem; text-decoration: none; color: var(--ink); font-weight: 800; background: rgba(255,255,255,.66); }
+.category-jump a:hover { border-color: var(--koi-pink); color: var(--koi-pink); }
+.featured-grid { align-items: stretch; }
+.image-gallery { display: grid; grid-template-columns: 1fr; gap: .7rem; margin-top: .75rem; }
+.image-gallery img { border-radius: 20px; width: 100%; object-fit: cover; }
+.accent-unscented h1, .accent-unscented .detail-title { color: #4f473d; }
+.info-box .clean li { margin-bottom: .18rem; }
+@media (max-width: 900px) { .product-section-stack { gap: 2.6rem; } }
