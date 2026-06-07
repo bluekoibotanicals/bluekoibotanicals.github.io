@@ -173,8 +173,8 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
 /* Category-page layout updates */
 .category-grid { align-items: stretch; }
 .category-card img { aspect-ratio: 16/11; object-fit: cover; }
-.product-card-small-salve img { object-fit: contain; padding: 2.35rem; background: linear-gradient(145deg, rgba(255,253,248,.95), rgba(246,237,226,.92)); }
-.product-image-small-salve img { width: 78%; margin: 0 auto; box-shadow: 0 10px 28px rgba(39,51,65,.10); }
+.product-card-small-salve img { object-fit: contain; padding: 2.75rem; background: linear-gradient(145deg, rgba(255,253,248,.95), rgba(246,237,226,.92)); }
+.product-image-small-salve img { width: 72%; margin: 0 auto; box-shadow: 0 10px 28px rgba(39,51,65,.10); }
 @media (max-width: 680px) {
   .product-card-small-salve img { padding: 1.55rem; }
   .product-image-small-salve img { width: 90%; }
