@@ -175,15 +175,16 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
 .category-card img { aspect-ratio: 16/11; object-fit: cover; }
 
 .product-card-small-salve img {
+  aspect-ratio: 3 / 2;
   object-fit: cover;
   padding: 0;
   background: transparent;
 }
 
 .product-image-small-salve img {
-  width: 72%;
-  margin: 0 auto;
-  box-shadow: 0 10px 28px rgba(39,51,65,.10);
+  width: 100%;
+  margin: 0;
+  box-shadow: none;
 }
 
 @media (max-width: 680px) {
@@ -193,7 +194,7 @@ ul.clean { margin: .5rem 0 0; padding-left: 1.1rem; }
   }
 
   .product-image-small-salve img {
-    width: 90%;
+    width: 100%;
   }
 }
 
