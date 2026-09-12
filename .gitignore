@@ -1,0 +1,6 @@
+.sites-runtime/
+__pycache__/
+*.pyc
+.DS_Store
+dist/
+assets/images/
