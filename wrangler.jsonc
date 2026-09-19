@@ -19,7 +19,7 @@
 		}
 	],
 	"vars": {
-		"STORE_MODE": "preview",
+		"STORE_MODE": "live",
 		"SITE_URL": "https://bluekoibotanicals.com",
 		"SQUARE_ENVIRONMENT": "production",
 		"SQUARE_API_VERSION": "2026-09-16",
@@ -27,7 +27,7 @@
 		"SQUARE_LOCATION_ID": "LBZYNM2ZZF9AN",
 		"EMAIL_FROM": "Blue Koi Botanicals <orders@bluekoibotanicals.com>",
 		"OWNER_EMAIL": "blue.koi.botanicals@gmail.com",
-		"LIVE_LAUNCH_CONFIRMED": "false",
+		"LIVE_LAUNCH_CONFIRMED": "true",
 		"SQUARE_WEBHOOK_URL": "https://bluekoibotanicals.com/api/webhooks/square"
 	},
 	"triggers": {
