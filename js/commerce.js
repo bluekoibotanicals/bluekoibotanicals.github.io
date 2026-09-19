@@ -5,7 +5,7 @@ const root = new URL('../',import.meta.url);
 export const pageURL = path => new URL(path,root).href;
 export async function api(path, data, headers={}) {
   const response=await fetch(new URL(path,root),{method:data===undefined?'GET':'POST',credentials:'same-origin',headers:{...(data===undefined?{}:{'Content-Type':'application/json'}),...headers},body:data===undefined?undefined:JSON.stringify(data)});
-  let result;try{result=await response.json();}catch{throw new Error('The store connection is unavailable. Please try again or email Gwyn.');}
+  let result;try{result=await response.json();}catch{throw new Error('The store connection is unavailable. Please try again or email us.');}
   if (!response.ok) {const error=new Error(result.error || 'Please try again.');error.code=result.code;throw error;}
   return result;
 }
@@ -36,7 +36,7 @@ async function productsUI(){
         if(!Number.isInteger(quantity) || quantity<1 || quantity>12)return toast('Choose a quantity between 1 and 12.');
         const existing=cart.find(x=>x.slug===p.slug);
         if((existing?.quantity || 0)+quantity>p.stock)return toast(`Only ${p.stock} available.`);
-        if(cart.reduce((n,p)=>n+p.quantity,0)+quantity>12)return toast('Please contact Gwyn for orders larger than 12 items.');
+        if(cart.reduce((n,p)=>n+p.quantity,0)+quantity>12)return toast('Please contact us for orders larger than 12 items.');
         if(existing)existing.quantity+=quantity;else cart.push({slug:p.slug,quantity});
         try{saveCart(cart);toast('Added to your bag.');}catch(error){toast(error.message);}
       });
@@ -60,7 +60,7 @@ async function reviewsUI(){
   }
 }
 countBag();window.addEventListener('storage',countBag);
-productsUI().catch(error=>{if($('#cart-items'))$('#cart-items').textContent=error.message;document.querySelectorAll('[data-add-product]').forEach(el=>{el.disabled=true;el.textContent='Please contact Gwyn';});});
+productsUI().catch(error=>{if($('#cart-items'))$('#cart-items').textContent=error.message;document.querySelectorAll('[data-add-product]').forEach(el=>{el.disabled=true;el.textContent='Please contact us';});});
 reviewsUI();
 if($('#address-form'))import('./checkout.js');
 if($('#order-details') || $('#review-form') || $('#admin-login'))import('./account-pages.js');

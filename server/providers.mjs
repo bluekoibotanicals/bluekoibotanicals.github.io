@@ -9,14 +9,14 @@ export async function square(env, path, body, method = body ? 'POST' : 'GET') {
   if (!response.ok) {
     const code = data.errors?.[0]?.code || 'SQUARE_ERROR';
     const uncertain = response.status >= 500 || response.status === 429;
-    throw new StoreError(uncertain ? 'The payment service is temporarily unavailable.' : 'The payment service could not complete this request. Check your details or contact Gwyn.', uncertain ? 503 : 400, uncertain ? 'SQUARE_UNCERTAIN' : code);
+    throw new StoreError(uncertain ? 'The payment service is temporarily unavailable.' : 'The payment service could not complete this request. Check your details or contact us.', uncertain ? 503 : 400, uncertain ? 'SQUARE_UNCERTAIN' : code);
   }
   return data;
 }
 export async function catalog(env) {
   if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID || env.STORE_MODE === 'preview') return products.map(p => ({...p,stock:p.stock_snapshot}));
   const ids = products.map(p => p.square_variation_id).filter(Boolean);
-  if (!ids.length) fail('The product catalog is being connected. Please contact Gwyn to order.',503,'CATALOG_SETUP');
+  if (!ids.length) fail('The product catalog is being connected. Please contact us to order.',503,'CATALOG_SETUP');
   const [items, counts] = await Promise.all([
     square(env,'/catalog/batch-retrieve',{object_ids:ids,include_related_objects:true}),
     square(env,'/inventory/counts/batch-retrieve',{catalog_object_ids:ids,location_ids:[env.SQUARE_LOCATION_ID],states:['IN_STOCK']})
@@ -35,7 +35,7 @@ export async function catalog(env) {
 }
 export async function shipping(env, lines, a) {
   checkDestination(lines,a);
-  let from; try { from = JSON.parse(env.SHIP_FROM_JSON); } catch { fail('Shipping is being configured. Please contact Gwyn to order.',503,'SHIPPING_SETUP'); }
+  let from; try { from = JSON.parse(env.SHIP_FROM_JSON); } catch { fail('Shipping is being configured. Please contact us to order.',503,'SHIPPING_SETUP'); }
   if (!['name','street1','city','state','zip','country'].every(k => from[k]) || from.country !== 'US' || from.state !== 'VA') fail('The shipping origin needs to be configured.',503,'SHIPPING_SETUP');
   const packs = parcels(lines);
   const shipments = await Promise.all(packs.map(async pack => {
@@ -44,7 +44,7 @@ export async function shipping(env, lines, a) {
     if (!response.ok) {
       // Status only: never log addresses, credentials, or raw provider response bodies.
       console.error('Shippo rate request rejected',response.status);
-      fail('Shipping rates could not be calculated. Please contact Gwyn if this continues.',503,`SHIPPO_HTTP_${response.status}`);
+      fail('Shipping rates could not be calculated. Please contact us if this continues.',503,`SHIPPO_HTTP_${response.status}`);
     }
     const data = await response.json();
     return (data.rates || []).filter(r => r.currency === 'USD' && /^\d+(\.\d{1,2})?$/.test(r.amount) && r.object_id && r.servicelevel?.token && (env.STORE_MODE !== 'live' || !r.test));
@@ -58,7 +58,7 @@ export async function shipping(env, lines, a) {
     if (matches.some(x => !x)) continue;
     rates.push({id:uuid(),carrier:clean(r.provider,50),service:clean(r.servicelevel.name,80),amount:matches.reduce((n,x)=>n+Math.round(Number(x.amount)*100),0),days:matches.every(x => Number.isFinite(Number(x.estimated_days)) && x.estimated_days !== null) ? Math.max(...matches.map(x=>Number(x.estimated_days))) : null,parcel_count:packs.length,shippo_rate_ids:matches.map(x=>x.object_id)});
   }
-  if (!rates.length) fail('No shipping services are available for the entire order at this address. Please contact Gwyn.',400,'NO_RATES');
+  if (!rates.length) fail('No shipping services are available for the entire order at this address. Please contact us.',400,'NO_RATES');
   return {rates:rates.sort((a,b)=>a.amount-b.amount),parcels:packs};
 }
 export function squareAddress(a) { return {address_line_1:a.street1,address_line_2:a.street2 || undefined,locality:a.city,administrative_district_level_1:a.state || undefined,postal_code:a.zip || undefined,country:a.country,first_name:a.name.split(' ')[0],last_name:a.name.split(' ').slice(1).join(' ')}; }

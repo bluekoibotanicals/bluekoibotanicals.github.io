@@ -80,7 +80,7 @@ test('discount codes are safely deactivated and stale quotes cannot charge',asyn
   const q=await f.quote(undefined,address,'TAKE5');assert.equal(q.data.item_totals.discount,500);
   assert.equal((await f.request('/api/admin/discount-codes',{action:'set-active',code:'TAKE5',active:false},admin(f))).status,200);
   assert.equal((await f.pay(q)).data.code,'QUOTE_EXPIRED');assert.equal(f.state.paymentCalls,0);
-  const codes=await f.request('/api/admin/discount-codes',undefined,admin(f));assert.equal(codes.data.discount_codes[0].active,0);f.close();
+  const codes=await f.request('/api/admin/discount-codes',undefined,admin(f));assert.equal(codes.data.discount_codes.find(c=>c.code==='TAKE5').active,0);f.close();
 });
 test('live configuration uses real rates, all-destination tax, and an optional code',async()=>{
   const f=fixture();emails(f);Object.assign(f.env,{STORE_MODE:'live',SQUARE_ENVIRONMENT:'production',LIVE_LAUNCH_CONFIRMED:'true',SHIPPO_API_KEY:'shippo_live_fixture'});

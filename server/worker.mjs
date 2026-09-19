@@ -1,5 +1,6 @@
 import {store, products, StoreError, fail, now, uuid, digest, hmac, safeEqual, clean, address, normalizeCart, makeLines, checkDestination, totals, publicProduct, ready, money, promotionalRates} from './core.mjs';
 import {catalog, shipping, square, squareAddress, squareOrder, sendEmail} from './providers.mjs';
+import {createPastInvitation,listPastInvitations,pastInvitationAction,retryPastInvitations} from './past-reviews.mjs';
 const checkoutPolicy=()=>JSON.stringify({version:4,tax:store.tax});
 const stmt = (env,sql,...values) => env.DB.prepare(sql).bind(...values);
 const first = (env,sql,...values) => stmt(env,sql,...values).first();
@@ -10,7 +11,7 @@ async function body(req) { const s=await req.text(); if (s.length>20000) fail('R
 async function limit(env, req, scope, max=30) {
   const k=await digest(`${scope}:${req.headers.get('CF-Connecting-IP') || 'local'}:${Math.floor(now()/3600)}`);
   const r=await first(env,'INSERT INTO rate_limits(key,hits,expires_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET hits=hits+1 RETURNING hits',k,now()+7200);
-  if (r.hits>max) fail('Too many requests. Please try again later or contact Gwyn.',429,'RATE_LIMIT');
+  if (r.hits>max) fail('Too many requests. Please try again later or contact us.',429,'RATE_LIMIT');
 }
 function admin(req,env) { if (!env.ADMIN_TOKEN || env.ADMIN_TOKEN.length<32 || !safeEqual(req.headers.get('Authorization') || '',`Bearer ${env.ADMIN_TOKEN}`)) fail('Sign in to manage the store.',401); }
 async function ownedOrder(env,id,session) { const o=await first(env,'SELECT * FROM orders WHERE id=? AND session_hash=?',id,session); if (!o) fail('Order not found in this browser.',404); return o; }
@@ -30,7 +31,7 @@ async function resolveDiscount(env,input,subtotal) {
 }
 const sameDiscount=(a,b)=>JSON.stringify(a || null)===JSON.stringify(b || null);
 async function finishPayment(env,o,payment) {
-  if (!payment || payment.order_id!==o.square_order_id || Number(payment.amount_money?.amount)!==JSON.parse(o.data).totals.total || payment.amount_money?.currency!=='USD') fail('Payment requires an order check. Please contact Gwyn.',503,'PAYMENT_MISMATCH');
+  if (!payment || payment.order_id!==o.square_order_id || Number(payment.amount_money?.amount)!==JSON.parse(o.data).totals.total || payment.amount_money?.currency!=='USD') fail('Payment requires an order check. Please contact us.',503,'PAYMENT_MISMATCH');
   const state=payment.status === 'COMPLETED' ? (Number(payment.refunded_money?.amount || 0)>=Number(payment.amount_money.amount) ? 'refunded' : 'paid') : ['CANCELED','FAILED'].includes(payment.status) ? 'failed' : 'processing';
   const data=JSON.parse(o.data);data.refunded_cents=Number(payment.refunded_money?.amount || 0); if (payment.receipt_url?.startsWith('https://')) data.receipt_url=payment.receipt_url;
   await run(env,'UPDATE orders SET status=?,payment_id=?,data=?,payment_request=CASE WHEN ?=\'processing\' THEN payment_request ELSE NULL END,recovery_note=NULL,updated_at=? WHERE id=? AND status IN (\'processing\',\'paid\',\'refunded\')',state,payment.id,JSON.stringify(data),state,now(),o.id);
@@ -110,7 +111,7 @@ async function cancelUnpaid(env,o) {
   return first(env,'SELECT * FROM orders WHERE id=?',o.id);
 }
 async function checkout(req,env,session,ctx) {
-  if (!ready(env)) fail('Checkout is not open yet. Please contact Gwyn to order.',503,'SETUP_REQUIRED');
+  if (!ready(env)) fail('Checkout is not open yet. Please contact us to order.',503,'SETUP_REQUIRED');
   await limit(env,req,'checkout',30);
   const b=await body(req);
   const q=await first(env,'SELECT * FROM quotes WHERE id=? AND session_hash=?',clean(b.quote_id,50),session);
@@ -177,23 +178,28 @@ async function checkout(req,env,session,ctx) {
 }
 async function reviewToken(env,token) {
   if (typeof token!=='string' || token.length>200) fail('Invalid review invitation.',403);
-  const r=await first(env,'SELECT o.*,t.expires_at FROM review_tokens t JOIN orders o ON o.id=t.order_id WHERE t.token_hash=?',await digest(token));
-  if (!r || r.expires_at<now() || !['paid','refunded'].includes(r.status)) fail('This review invitation is invalid or has expired. Contact Gwyn for help.',403);
-  return r;
+  const hash=await digest(token),r=await first(env,'SELECT o.*,t.expires_at FROM review_tokens t JOIN orders o ON o.id=t.order_id WHERE t.token_hash=?',hash);
+  if(r && r.expires_at>now() && ['paid','refunded'].includes(r.status))return {...r,past:false};
+  const past=await first(env,'SELECT id,products_json,expires_at,revoked_at FROM past_review_invitations WHERE token_hash=?',hash);
+  if(!past || past.revoked_at || past.expires_at<=now())fail('This review invitation is invalid or has expired. Contact us for help.',403);
+  return {id:past.id,past:true,data:JSON.stringify({lines:JSON.parse(past.products_json)})};
 }
 async function route(req,env,ctx,session) {
   const u=new URL(req.url),p=u.pathname;
-  if (p==='/api/config' && req.method==='GET') return json({mode:env.STORE_MODE || 'preview',checkout_ready:ready(env),square_environment:env.SQUARE_ENVIRONMENT || 'sandbox',application_id:env.SQUARE_APPLICATION_ID || '',location_id:env.SQUARE_LOCATION_ID || '',processing:store.processing_days,free_shipping:store.free_shipping});
+  if (p==='/api/config' && req.method==='GET') {
+    const code=env.DB?await first(env,"SELECT code FROM discount_codes WHERE code='FREESHIP25' AND active=1 AND kind='free_shipping' AND minimum_subtotal_cents=2501"):null;
+    return json({mode:env.STORE_MODE || 'preview',checkout_ready:ready(env),square_environment:env.SQUARE_ENVIRONMENT || 'sandbox',application_id:env.SQUARE_APPLICATION_ID || '',location_id:env.SQUARE_LOCATION_ID || '',processing:store.processing_days,free_shipping:{enabled:!!code,code:'FREESHIP25',banner:'Free shipping for the first 50 customers on orders over $25.',terms:'Enter FREESHIP25 below and choose the lowest-priced shipping service. Merchandise subtotal must exceed $25 before tax. Expedited services cost extra. One code per order.'}});
+  }
   if (!env.DB) fail('The store database is being configured.',503,'SETUP_REQUIRED');
   if (p==='/api/catalog' && req.method==='GET') {
     const items=await catalog(env),held=await all(env,'SELECT slug,SUM(quantity) AS quantity FROM reservations GROUP BY slug');
     return json({products:items.map(p=>publicProduct({...p,stock:Math.max(0,p.stock-(held.find(h=>h.slug===p.slug)?.quantity || 0))})),preview:env.STORE_MODE==='preview'});
   }
   if (p==='/api/quote' && req.method==='POST') {
-    if (!ready(env)) fail('Checkout is not open yet. Please contact Gwyn to order.',503,'SETUP_REQUIRED');
+    if (!ready(env)) fail('Checkout is not open yet. Please contact us to order.',503,'SETUP_REQUIRED');
     await limit(env,req,'quotes',20);
     const pending=await first(env,'SELECT id FROM orders WHERE session_hash=? AND status=\'processing\' LIMIT 1',session);
-    if (pending) fail(`Order ${pending.id} is still being checked. Open your order confirmation page or contact Gwyn before placing another order.`,409,'PAYMENT_PENDING');
+    if (pending) fail(`Order ${pending.id} is still being checked. Open your order confirmation page or contact us before placing another order.`,409,'PAYMENT_PENDING');
     const b=await body(req),a=address(b.address),cart=normalizeCart(b.cart);
     checkDestination(cart.map(l=>products.find(p=>p.slug===l.slug)),a);
     const requestedCode=discountCode(b.discount_code);
@@ -224,13 +230,13 @@ async function route(req,env,ctx,session) {
   }
   if (p==='/api/reviews' && req.method==='GET') {
     const slug=u.searchParams.get('product'); if (!products.some(p=>p.slug===slug)) fail('Product not found.',404);
-    const reviews=await all(env,'SELECT rating,author,body,created_at FROM reviews WHERE slug=? AND status=\'published\' ORDER BY created_at DESC LIMIT 100',slug);
-    const stats=await first(env,'SELECT COUNT(*) AS count,AVG(rating) AS average FROM reviews WHERE slug=? AND status=\'published\'',slug);
+    const reviews=await all(env,'SELECT rating,author,body,created_at FROM all_product_reviews WHERE slug=? AND status=\'published\' ORDER BY created_at DESC LIMIT 100',slug);
+    const stats=await first(env,'SELECT COUNT(*) AS count,AVG(rating) AS average FROM all_product_reviews WHERE slug=? AND status=\'published\'',slug);
     return json({reviews,...stats});
   }
   if (p==='/api/review-invitation' && req.method==='POST') {
     await limit(env,req,'review-token',30); const b=await body(req),o=await reviewToken(env,b.token);
-    const done=await all(env,'SELECT slug FROM reviews WHERE order_id=?',o.id);
+    const done=await all(env,o.past?'SELECT slug FROM past_reviews WHERE invitation_id=?':'SELECT slug FROM reviews WHERE order_id=?',o.id);
     return json({products:JSON.parse(o.data).lines.map(l=>({slug:l.slug,name:l.name,size:l.size,submitted:done.some(x=>x.slug===l.slug)}))});
   }
   if (p==='/api/reviews' && req.method==='POST') {
@@ -238,12 +244,19 @@ async function route(req,env,ctx,session) {
     if (!JSON.parse(o.data).lines.some(p=>p.slug===b.slug)) fail('Only products in your order can be reviewed.',403);
     const author=clean(b.author,60),text=clean(b.body,2000);
     if (!author || text.length<10 || !Number.isInteger(b.rating) || b.rating<1 || b.rating>5) fail('Add a name, a rating from 1 to 5, and at least 10 characters of review text.');
-    const r=await run(env,'INSERT OR IGNORE INTO reviews(id,order_id,slug,rating,author,body,created_at) VALUES(?,?,?,?,?,?,?)',uuid(),o.id,b.slug,b.rating,author,text,now());
+    const sql=o.past?'INSERT OR IGNORE INTO past_reviews(id,invitation_id,slug,rating,author,body,created_at) VALUES(?,?,?,?,?,?,?)':'INSERT OR IGNORE INTO reviews(id,order_id,slug,rating,author,body,created_at) VALUES(?,?,?,?,?,?,?)';
+    const r=await run(env,sql,(o.past?'past-':'')+uuid(),o.id,b.slug,b.rating,author,text,now());
     if (!r.meta.changes) fail('You have already reviewed this product from this order.',409);
     return json({message:'Thank you! Your verified purchase review has been submitted for moderation.'},201);
   }
   if (p.startsWith('/api/admin/')) {
     await limit(env,req,'admin',100); admin(req,env);
+    if(p==='/api/admin/past-review-invitations' && req.method==='GET')return json({invitations:await listPastInvitations(env),products:products.map(p=>({slug:p.slug,name:p.name,size:p.display_size}))});
+    if(p==='/api/admin/past-review-invitations' && req.method==='POST') {
+      const b=await body(req);
+      if(b.action==='create') {await limit(env,req,'past-invitations',30);return json(await createPastInvitation(env,b),201);}
+      return json(await pastInvitationAction(env,b));
+    }
     if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:products.filter(p=>p.square_variation_id).length,total:products.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
     if (p==='/api/admin/orders' && req.method==='GET') return json({orders:(await all(env,'SELECT * FROM orders ORDER BY created_at DESC LIMIT 100')).map(o=>({...publicOrder(o),created_at:o.created_at,fulfilled_at:o.fulfilled_at,square_order_id:o.square_order_id,payment_id:o.payment_id,recovery_note:o.recovery_note,email_sent:!!o.email_sent,owner_email_sent:!!o.owner_email_sent,address:JSON.parse(o.data).address,parcels:JSON.parse(o.data).parcels}))});
     if (p==='/api/admin/discount-codes' && req.method==='GET') return json({discount_codes:await all(env,'SELECT code,kind,value,minimum_subtotal_cents,active,created_at,updated_at FROM discount_codes ORDER BY active DESC, created_at DESC')});
@@ -264,11 +277,12 @@ async function route(req,env,ctx,session) {
       }
       fail('Invalid discount code action.');
     }
-    if (p==='/api/admin/reviews' && req.method==='GET') return json({reviews:await all(env,'SELECT id,slug,rating,author,body,status,created_at FROM reviews ORDER BY created_at DESC LIMIT 100')});
+    if (p==='/api/admin/reviews' && req.method==='GET') return json({reviews:await all(env,'SELECT id,slug,rating,author,body,status,created_at,purchase_source FROM all_product_reviews ORDER BY created_at DESC LIMIT 100')});
     if (p==='/api/admin/reviews' && req.method==='POST') {
       const b=await body(req); if (!['published','rejected','pending'].includes(b.status)) fail('Invalid review status.');
       if (b.status==='rejected' && clean(b.reason,300).length<5) fail('Provide a moderation reason. Negative ratings are not a reason to reject a review.');
-      await run(env,'UPDATE reviews SET status=?,moderation_reason=? WHERE id=?',b.status,clean(b.reason,300),clean(b.id,50));return json({ok:true});
+      const id=clean(b.id,50),table=id.startsWith('past-')?'past_reviews':'reviews';
+      await run(env,`UPDATE ${table} SET status=?,moderation_reason=? WHERE id=?`,b.status,clean(b.reason,300),id);return json({ok:true});
     }
     if (['/api/admin/reconcile','/api/admin/cancel-unpaid'].includes(p) && req.method==='POST') { const b=await body(req),o=await first(env,'SELECT * FROM orders WHERE id=?',clean(b.id,50));if (!o) fail('Order not found.',404); const updated=p.endsWith('cancel-unpaid')?await cancelUnpaid(env,o):o.status==='processing'?await recoverPayment(env,o):await reconcile(env,o);ctx.waitUntil(confirmation(env,updated).catch(()=>{}));return json(publicOrder(updated)); }
   }
@@ -305,7 +319,7 @@ export default {
       const response=await route(req,env,ctx,await digest(token));return secure(response,url,true,cookie);
     } catch(error) {
       if (!(error instanceof StoreError)) console.error('Store request failed:',error.name); // Never log payment requests, tokens, addresses, or provider bodies.
-      return secure(json({error:error instanceof StoreError ? error.message : 'The store could not complete this request. Please try again or contact Gwyn.',code:error.code || 'INTERNAL'},error.status || 500),url,true,cookie);
+      return secure(json({error:error instanceof StoreError ? error.message : 'The store could not complete this request. Please try again or contact us.',code:error.code || 'INTERNAL'},error.status || 500),url,true,cookie);
     }
   },
   async scheduled(event,env,ctx) { ctx.waitUntil(maintenance(env)); }
@@ -318,6 +332,7 @@ function secure(response,url,api,cookie) {
 }
 export async function maintenance(env) {
   if (!env.DB || env.STORE_MODE==='preview')return;
+  await retryPastInvitations(env);
   const pending=await all(env,'SELECT * FROM orders WHERE status=\'processing\' OR (status=\'paid\' AND (email_sent=0 OR owner_email_sent=0 OR fulfilled_at IS NULL)) ORDER BY recovery_checked_at ASC,created_at ASC LIMIT 40');
   for (let o of pending) {
     try {

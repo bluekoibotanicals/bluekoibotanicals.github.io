@@ -31,7 +31,7 @@ export function normalizeCart(cart) {
     if (!line || !products.some(p => p.slug === line.slug) || !Number.isInteger(line.quantity) || line.quantity < 1) fail('An item or quantity in your bag is invalid.');
     combined.set(line.slug, (combined.get(line.slug) || 0) + line.quantity);
   }
-  if ([...combined.values()].reduce((a,b) => a+b, 0) > store.max_items_per_order) fail(`Please contact Gwyn for orders larger than ${store.max_items_per_order} items.`);
+  if ([...combined.values()].reduce((a,b) => a+b, 0) > store.max_items_per_order) fail(`Please contact us for orders larger than ${store.max_items_per_order} items.`);
   return [...combined].sort(([a],[b]) => a.localeCompare(b)).map(([slug,quantity]) => ({slug,quantity}));
 }
 export function makeLines(cart, catalog) {

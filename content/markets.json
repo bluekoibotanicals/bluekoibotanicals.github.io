@@ -1,0 +1,30 @@
+{
+  "year": 2026,
+  "first_month": 9,
+  "last_month": 12,
+  "timezone": "America/New_York",
+  "markets": [
+    {
+      "id": "park",
+      "name": "Farmer's in the Park",
+      "short_name": "Park",
+      "weekday": 2,
+      "start_date": "2026-09-01",
+      "end_date": "2026-10-31",
+      "start_time": "15:00",
+      "end_time": "19:00",
+      "excluded_dates": []
+    },
+    {
+      "id": "city",
+      "name": "Charlottesville City Market",
+      "short_name": "City",
+      "weekday": 5,
+      "start_date": "2026-09-01",
+      "end_date": "2026-12-19",
+      "start_time": "09:00",
+      "end_time": "13:00",
+      "excluded_dates": ["2026-11-07", "2026-11-14"]
+    }
+  ]
+}

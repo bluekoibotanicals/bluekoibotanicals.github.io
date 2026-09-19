@@ -1,11 +1,13 @@
-# Apply the discount-code update
+# Blue Koi: past-customer reviews and market calendar update
 
-This update preserves the supplied production Square mappings, prices, product photos, Cloudflare database ID, live mode, and launch confirmation. It has not been deployed.
+This is an incremental update for the discount-code version you already deployed. It has not been deployed to Cloudflare and has not sent any real invitations.
 
-1. Back up your current project folder locally.
-2. Extract this ZIP and copy the contents of its project folder into your existing project folder. Replace matching files. Keep your own .dev.vars, local data, and Git history; none is included here.
-3. In Square Dashboard → Items & orders → Items, change each 4 fl oz Body Oil variation to **$18.00**: Cedarwood Vanilla, Eucalyptus, Jasmine, and Lavender. The live site uses Square as its checkout price authority, so this keeps the product pages and charged amount aligned.
-4. In PowerShell, from your existing project folder, run:
+## Install
+
+1. Make a local backup of your existing project folder.
+2. Extract the ZIP. Open its `Blue-Koi-Reviews-and-Markets-Update` folder, then copy **the contents** into your existing `bluekoibotanicals.github.io` project folder. Replace matching files and merge matching folders. **Do not delete your existing project.**
+3. Your `.dev.vars`, `wrangler.jsonc`, product catalog/mappings, photos, dependencies, Git history, and existing database stay in place. This ZIP does not contain credentials or a replacement Cloudflare configuration.
+4. From your existing project folder, run these PowerShell commands one at a time:
 
 ```powershell
 npm.cmd test
@@ -14,35 +16,65 @@ npx.cmd wrangler d1 migrations apply blue-koi-store --remote
 npx.cmd wrangler deploy
 ```
 
-**Stop if any command fails. Apply the database migration before deploying the new Worker.** The migration adds the discount-code table and preserves existing orders. No new database is needed.
+Stop if a command fails. Answer **yes** to applying `0004_past_customer_reviews.sql`. Apply the migration before deploying. Do not create a new database or rerun Square catalog mapping.
 
-The build automatically uses the Windows Python launcher. Using npm.cmd and npx.cmd avoids PowerShell's script execution-policy error. Dependencies have not changed; use npm.cmd ci only if node_modules is missing.
+The migration adds separate invitation/review tables and a combined review view. It preserves existing orders, website reviews, and review links. It creates `FREESHIP25` only if that code does not already exist; an existing code's settings and activation choice are preserved. Dependencies have not changed.
 
-## What changed
+## Invite a past customer
 
-- Delivery is limited to the 50 states and D.C. All foreign shipping is rejected on the server as well as removed from the delivery form. Foreign billing addresses remain available.
-- CBD and mixed CBD carts cannot ship to CO, ID, or WY. Non-CBD carts can.
-- Every order uses one parcel. Two or more units select the 8 × 6 × 4 inch box with 0.22 lb tare. A single unit retains its configured box. Product weights are summed, box weight is added once, and Shippo weight precision is capped at four decimals.
-- Every destination receives 5.3% tax on merchandise, as requested. Separately stated shipping remains untaxed. Square supplies the final tax rounding.
-- Checkout accepts server-validated discount codes. Percentage and fixed-dollar codes reduce merchandise before the 5.3% tax; neither reduces shipping.
-- All four 4 fl oz body oils are now displayed at $18.00. Update those four Square variations to $18.00 before deployment so checkout charges the same price.
-- The former automatic free-shipping offer is now an optional code type. In /admin.html, create `FREESHIP25` as “Free lowest-cost shipping,” with amount `0` and a minimum merchandise subtotal of `25.01`. The code makes only the least-expensive available shipping service free; expedited upgrades retain their price.
-- Admin can activate or deactivate codes. A changed or disabled code invalidates an open quote before any payment is submitted.
-- Gwyn receives a separate paid-order email at blue.koi.botanicals@gmail.com, with items, totals, address, parcel details, and Square references. Change OWNER_EMAIL in wrangler.jsonc if needed. Customer and owner emails have separate delivery flags and retry independently.
-- Payment recovery runs every five minutes and reuses the exact original request, including its idempotency key, for up to 23 hours. It never creates a fresh charge to recover an uncertain result. Older unresolved orders retain stock reservations for review.
-- Admin shows email status and recovery notes. Cancel unpaid order checks Square, requires confirmed cancellation, and refuses orders with payments. Paid refunds still happen in Square.
-- Page generation reads/writes UTF-8 explicitly, repairing separators, copyright signs, dashes, and other corrupted characters on Windows.
-- Cloudflare configuration declares the existing apex domain route and disables workers.dev, avoiding the subdomain-registration prompt.
+Open https://bluekoibotanicals.com/admin.html and sign in with your existing store access key.
 
-## Check after deployment
+1. Find **Invite past customers**.
+2. Enter their name and email.
+3. Select the source: Square/POS, market/cash, Etsy, or another prior purchase.
+4. Enter the purchase date and receipt number. For a cash sale without a receipt number, use a unique reference from your own sales records, such as `MARKET-2026-09-19-003`.
+5. Select only the products they purchased and check the purchase-verification box after confirming the sale.
+6. Click **Send review invitation**. This sends a real email through your existing Resend setup immediately; it does not wait for the normal post-fulfillment delay.
 
-1. Hard refresh the website (Ctrl+F5). Check the footer ©, product separators, and 1–3 days.
-2. In /admin.html, confirm live mode, 16/16 mappings, checkout connected, and the owner notification email.
-3. Try a CBD cart to CO, ID, and WY: all should be blocked. Try a non-CBD cart to one of those states: it should quote normally.
-4. In /admin.html, create a test percentage or fixed code and confirm its discount is shown before tax. Create the optional `FREESHIP25` code above and check that only the lowest-cost shipping service becomes free.
-5. Before accepting bulky orders, physically confirm that the chosen products fit the 8 × 6 × 4 box and that the supplied item weights are accurate. This is the requested default carton, not a dimensional packing algorithm. The 12-item order limit remains.
-6. With your first authorized transaction, verify one Square payment, the correct inventory decrease, a customer confirmation, and Gwyn's separate notification. Labels are still purchased manually in Shippo.
+The invitation creates no sale, charge, inventory adjustment, or shipping request. Invite customers regardless of whether you expect positive or negative feedback. The same source/reference cannot be invited twice. The invitation list shows the latest 100 invitations.
 
-Cloudflare secrets are not changed by the ZIP. They remain configured in your account. No real charge, shipping label, or email was generated during these tests.
+Each private link lasts 90 days and permits one review per selected product. Customer contact details and purchase references remain private. Submitted reviews appear under **Customer reviews** and require publication by an administrator. The moderation list identifies the purchase source.
 
-The supplied archive contained .dev.vars and Git history. Those files were not opened and are excluded here. Rotate any real credentials that were included in the original shared archive.
+Use **Copy review link** to share the existing link privately with that customer. **Revoke invitation** blocks further use but leaves submitted reviews available for moderation. An expired/revoked invitation cannot be reused.
+
+Failed email deliveries retry on the existing five-minute schedule, using the same email and deduplication key. Retries stop after 23 hours to avoid duplicate sends after the provider's deduplication window. If a status says to check Resend, inspect its email log; use the existing private link rather than creating a duplicate purchase reference.
+
+## FREESHIP25 banner
+
+The checkout banner advertises: **Free shipping for the first 50 customers on orders over $25.** The **Use FREESHIP25** button fills the code field; the customer then clicks **Get shipping options** to apply it.
+
+- Code: `FREESHIP25`.
+- Type: Free lowest-cost shipping.
+- Amount: 0.
+- Minimum merchandise subtotal: $25.01, before tax.
+- The cheapest available service becomes free. Other services remain paid upgrades.
+- Shipping is not free by default, and the code does not combine with another discount.
+- The first-50 wording is promotional: there is **no automatic 50-customer cutoff**, as previously requested. Deactivate the code under **Discount codes** when you want to end the offer. Deactivation also hides the banner on page reload.
+- The banner is shown only while FREESHIP25 is active, is a free-shipping code, and has a $25.01 minimum. If your existing code has different settings, check those settings before advertising the offer.
+
+## Homepage, markets, and Contact
+
+The homepage headline is now:
+
+> Rooted in Virginia
+>
+> A little care, just for you.
+
+The homepage includes a month-by-month September–December **2026** calendar with Charlottesville local times:
+
+- Farmer's in the Park: Wednesdays, 3–7 p.m., through October 28. “Until November” is interpreted as no Wednesday appearances in November.
+- Charlottesville City Market: Saturdays, 9 a.m.–1 p.m., through December 19 inclusive.
+- Not attending November 7 or November 14.
+
+The calendar starts on the current month within the displayed season, with previous/next buttons. All four months remain readable when JavaScript is disabled. It does not automatically invent dates for a future season. The source schedule is `content/markets.json`; update it and rebuild when dates change. Weekday numbers in that file use Monday=0 through Sunday=6.
+
+Customer-facing links, help messages, and error text now use “Contact us,” “Email us,” “Ask us a question,” or “Send us a note.” Gwyn's portrait has been removed from Contact; her text introduction and the portrait on Our Story remain. Contact links to the same market calendar.
+
+## Quick check after deployment
+
+- Refresh the homepage and Contact. Browse November and confirm the two absences; December ends on the 19th.
+- Verify the active FREESHIP25 settings in Admin. With an eligible cart, compare shipping without the code and with it, stopping before payment.
+- Use a verified past purchase and a customer you intend to invite. Confirm the invitation email arrives, submit a review through its private link, and check that it is not public until you publish it.
+- Existing website-order reviews continue to use the original fulfillment-based invitations.
+
+Automated tests use simulated providers. No additional real charge is necessary to verify this update.
