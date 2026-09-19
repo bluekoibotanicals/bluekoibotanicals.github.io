@@ -5,7 +5,7 @@ import {normalizeCart,totals,parcels,products,store,checkDestination,hmac,digest
 import {maintenance} from '../server/worker.mjs';
 const lip='honey-lavender-lip-balm';
 test('money, all-destination tax, and Shippo-compatible packed weights',()=>{
-  assert.deepEqual(totals([{price_cents:500,quantity:1}],625,address),{subtotal:500,shipping:625,tax:27,total:1152,currency:'USD'});
+  assert.deepEqual(totals([{price_cents:500,quantity:1}],625,address),{subtotal:500,discount:0,shipping:625,tax:27,total:1152,currency:'USD'});
   assert.equal(totals([{price_cents:3200,quantity:1}],625,{...address,state:'CA'}).tax,170);
   const p=products.find(p=>p.slug==='cbd-salve');assert.equal(parcels([{...p,quantity:2}]).length,1);assert.equal(parcels([{...p,quantity:1}])[0].parcel.weight,'0.3969');
   assert.throws(()=>normalizeCart([{slug:lip,quantity:1.5}]));assert.throws(()=>normalizeCart([{slug:lip,quantity:13}]));

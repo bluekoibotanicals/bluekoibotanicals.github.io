@@ -26,6 +26,7 @@ try{
 
   // Exercise the real Worker and browser flow with isolated SQLite and simulated Square/Shippo.
   const f=fixture();f.env.SITE_URL=base;
+  await f.request('/api/admin/discount-codes',{action:'create',code:'FREESHIP25',kind:'free_shipping',value:0,minimum_subtotal_cents:2501},{Authorization:'Bearer '+f.env.ADMIN_TOKEN});
   const context=await browser.newContext({viewport:{width:1440,height:1100}});const checkout=await context.newPage(),failures=[];checkout.on('pageerror',e=>failures.push(e.message));
   await context.route('**/api/**',async route=>{
     const req=route.request();const request=new Request(req.url(),{method:req.method(),headers:await req.allHeaders(),body:req.postData() || undefined});
@@ -33,7 +34,7 @@ try{
   });
   await context.route('https://sandbox.web.squarecdn.com/v1/square.js',route=>route.fulfill({contentType:'application/javascript',body:`window.Square={payments(){return {async card(){return {async attach(s){document.querySelector(s).innerHTML='<label class="field">Test card<input aria-label="Test card" placeholder="Simulated Square card form"></label>';},async tokenize(){return {status:'OK',token:'cnon:browser-test-token'};}}}}}};`}));
   await checkout.goto(base+'/products/honey-lavender-lip-balm.html');await checkout.getByRole('button',{name:'Add to bag'}).click();await checkout.goto(base+'/checkout.html');
-  assert.match(await checkout.locator('#shipping-promotion').innerText(),/first 50 orders over \$25/);
+  assert.equal(await checkout.getByLabel('Discount code (optional)').count(),1);
   assert.equal(await checkout.locator('#address-form select[name="country"]').count(),0);
   assert.equal(await checkout.locator('#address-form input[name="country"]').inputValue(),'US');
   for(const [name,value] of Object.entries({name:'Test Customer',email:'test@example.com',street1:'100 Test Street',city:'Charlottesville',state:'VA',zip:'22902'}))await checkout.locator(`#address-form [name="${name}"]`).fill(value);
@@ -45,6 +46,7 @@ try{
   await checkout.goto(base+'/products/honey-lavender-lip-balm.html');
   await checkout.locator('#product-quantity').fill('6');await checkout.getByRole('button',{name:'Add to bag'}).click();await checkout.goto(base+'/checkout.html');
   for(const [name,value] of Object.entries({name:'Test Customer',email:'test@example.com',street1:'100 Test Street',city:'Los Angeles',state:'CA',zip:'90001'}))await checkout.locator(`#address-form [name="${name}"]`).fill(value);
+  await checkout.getByLabel('Discount code (optional)').fill('FREESHIP25');
   await checkout.getByRole('button',{name:'Get shipping options'}).click();await checkout.getByRole('button',{name:'Pay $31.59 USD',exact:true}).waitFor();
   assert.match(await checkout.locator('.rate-option').first().innerText(),/Free/);
   assert.match(await checkout.locator('#parcel-note').innerText(),/one parcel/);
@@ -54,5 +56,5 @@ try{
   assert.equal(await checkout.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(failures,[]);
   await f.flush();await context.close();f.close();
-  console.log('Browser checks passed: desktop/mobile layouts, UTF-8 characters, U.S. delivery form, promotion, combined package, tax in VA and CA, simulated card purchase, order confirmation; no page errors.');
+  console.log('Browser checks passed: desktop/mobile layouts, UTF-8 characters, U.S. delivery form, discount code, combined package, tax in VA and CA, simulated card purchase, order confirmation; no page errors.');
 }finally{await browser.close();server?.kill();}

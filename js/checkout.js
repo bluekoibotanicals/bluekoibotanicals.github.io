@@ -6,7 +6,7 @@ const names=new Intl.DisplayNames(['en'],{type:'region'});
 document.querySelectorAll('[data-billing-countries]').forEach(el=>{el.innerHTML=countries.map(code=>({code,name:names.of(code)})).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.code}"${p.code==='US'?' selected':''}>${esc(p.name)}</option>`).join('');});
 function formAddress(element,prefix=''){const d=Object.fromEntries(new FormData(element));return Object.fromEntries(['name','email','phone','street1','street2','city','state','zip','country'].map(k=>[k,(d[prefix+k] || '').trim()]));}
 function error(message){errorEl.hidden=false;errorEl.textContent=message;errorEl.scrollIntoView({behavior:'smooth',block:'nearest'});}
-function clearQuote(){if(paying)return;requestNumber++;quote=null;rate=null;$('#shipping-step').hidden=true;$('#payment-step').hidden=true;$('#pay-button').disabled=true;}
+function clearQuote(){if(paying)return;requestNumber++;quote=null;rate=null;$('#shipping-step').hidden=true;$('#payment-step').hidden=true;$('#pay-button').disabled=true;$('#discount-status').textContent='';}
 form.addEventListener('input',clearQuote);form.addEventListener('change',clearQuote);
 window.addEventListener('storage',event=>{if(event.key==='bk_cart')clearQuote();});
 $('#billing-form').addEventListener('submit',event=>event.preventDefault());
@@ -16,7 +16,7 @@ async function setupCard(config){
   if(!window.Square){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=config.square_environment==='production'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js';script.onload=resolve;script.onerror=()=>reject(new Error('The secure card form could not load. Check your connection and try again.'));document.head.append(script);});}
   const payments=window.Square.payments(config.application_id,config.location_id);card=await payments.card();await card.attach('#card-container');
 }
-function selectedRate(){rate=quote.rates.find(r=>r.id===$('input[name="shipping-rate"]:checked')?.value);if(!rate)return;const t={...quote.item_totals,shipping:rate.amount,total:quote.item_totals.subtotal+quote.item_totals.tax+rate.amount};$('#checkout-totals').innerHTML=totalsHTML(t);$('#pay-button').textContent=`Pay ${currency(t.total)} USD`;$('#parcel-note').textContent=rate.parcel_count>1?`This quote covers ${rate.parcel_count} parcels.`:'Items ship together in one parcel.';$('#pay-button').disabled=!card;}
+function selectedRate(){rate=quote.rates.find(r=>r.id===$('input[name="shipping-rate"]:checked')?.value);if(!rate)return;const t={...quote.item_totals,discount_code:quote.discount?.code,shipping:rate.amount,total:quote.item_totals.total+rate.amount};$('#checkout-totals').innerHTML=totalsHTML(t);$('#pay-button').textContent=`Pay ${currency(t.total)} USD`;$('#parcel-note').textContent=rate.parcel_count>1?`This quote covers ${rate.parcel_count} parcels.`:'Items ship together in one parcel.';$('#pay-button').disabled=!card;}
 const config=await configPromise;
 const promotion=$('#shipping-promotion');
 if(promotion){promotion.hidden=!config.free_shipping?.enabled;if(config.free_shipping?.enabled){promotion.querySelector('strong').textContent=config.free_shipping.banner;promotion.querySelector('small').textContent=config.free_shipping.terms;}}
@@ -29,8 +29,8 @@ $('#get-rates').disabled=!config.checkout_ready || !items.length;
 form.addEventListener('submit',async event=>{
   event.preventDefault();errorEl.hidden=true;clearQuote();const version=++requestNumber;$('#get-rates').disabled=true;$('#get-rates').textContent='Finding shipping options…';
   try{
-    delivery=formAddress(form);const current=await api('api/quote',{cart:getCart(),address:delivery});if(version!==requestNumber)return;
-    quote=current;$('#checkout-items').innerHTML=linesHTML(quote.lines);$('#shipping-step').hidden=false;
+    delivery=formAddress(form);const current=await api('api/quote',{cart:getCart(),address:delivery,discount_code:$('#discount-code').value});if(version!==requestNumber)return;
+    quote=current;$('#checkout-items').innerHTML=linesHTML(quote.lines);$('#discount-status').textContent=quote.discount?(quote.discount.kind==='free_shipping'?`${quote.discount.code} applied — the lowest-priced shipping option is free.`:`${quote.discount.code} applied — save ${currency(quote.discount.amount)} on merchandise.`):'';$('#shipping-step').hidden=false;
     $('#shipping-rates').innerHTML='<legend class="sr-only">Choose your shipping service</legend>'+quote.rates.map((r,i)=>`<label class="rate-option"><input type="radio" name="shipping-rate" value="${r.id}"${i===0?' checked':''}><span><strong>${esc(r.carrier)} · ${esc(r.service)}</strong><small>${r.days!==null?`Estimated ${r.days} business day${r.days===1?'':'s'} in transit`:'Delivery estimate provided by carrier'}</small></span><strong>${r.free_shipping?'Free':currency(r.amount)}</strong></label>`).join('');
     $('#payment-step').hidden=false;selectedRate();
     document.querySelectorAll('[name="shipping-rate"]').forEach(el=>el.addEventListener('change',selectedRate));
@@ -42,7 +42,7 @@ $('#pay-button').addEventListener('click',async()=>{
   if(Date.now()/1000>=quote.expires_at){clearQuote();return error('Your quote has expired. Get fresh shipping rates before paying.');}
   if(!$('#billing-same').checked && !$('#billing-form').reportValidity())return;
   const billing=$('#billing-same').checked?delivery:formAddress($('#billing-form'),'billing_');
-  const snapshot={quote,rate},total=quote.item_totals.subtotal+quote.item_totals.tax+rate.amount;
+  const snapshot={quote,rate},total=quote.item_totals.total+rate.amount;
   paying=true;errorEl.hidden=true;
   document.querySelectorAll('#address-form input,#address-form select,#get-rates,#shipping-rates input,#billing-same,#billing-form input,#billing-form select,#pay-button').forEach(el=>el.disabled=true);
   $('#pay-button').textContent='Processing securely…';

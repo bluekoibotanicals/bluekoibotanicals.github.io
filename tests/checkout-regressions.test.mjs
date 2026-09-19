@@ -53,37 +53,39 @@ test('combined parcels use one large box, sum all weights, and stay within four 
 });
 test('all destinations use 5.3 percent on merchandise only',()=>{
   for(const state of ['VA','CA','NY','AK','HI','CO','ID','WY']){
-    assert.deepEqual(totals([{price_cents:3200,quantity:1}],625,{...address,state}),{subtotal:3200,shipping:625,tax:170,total:3995,currency:'USD'});
+    assert.deepEqual(totals([{price_cents:3200,quantity:1}],625,{...address,state}),{subtotal:3200,discount:0,shipping:625,tax:170,total:3995,currency:'USD'});
   }
 });
-test('free shipping is strictly over $25 and only discounts the cheapest service',async()=>{
+test('discount codes apply to merchandise before tax and the Square order',async()=>{
   const f=fixture();
-  const at=await f.quote([{slug:lip,quantity:5}]);assert.equal(at.data.item_totals.subtotal,2500);assert.equal(at.data.rates[0].amount,625);
-  const over=await f.quote([{slug:lip,quantity:6}],{...address,state:'CA'});
-  assert.equal(over.status,200);assert.equal(over.data.rates[0].amount,0);assert.equal(over.data.rates[0].free_shipping,true);
-  assert.equal(over.data.rates[1].amount,910);assert.equal(over.data.item_totals.tax,159);
-  assert.equal(f.state.lastShipment.parcels.length,1);assert.equal(f.state.lastShipment.parcels[0].length,'8');
-  const paid=await f.pay(over);assert.equal(paid.data.totals.total,3159);
-  assert.equal(f.state.paymentRequests[0].amount_money.amount,3159);
-  assert.equal([...f.state.orders.values()][0].service_charges.length,0);
-  await f.flush();f.close();
+  assert.equal((await f.request('/api/admin/discount-codes',{action:'create',code:'SAVE10',kind:'percent',value:1000,minimum_subtotal_cents:0},admin(f))).status,201);
+  const q=await f.quote(undefined,address,'save10');assert.equal(q.status,200);
+  assert.deepEqual(q.data.discount,{code:'SAVE10',kind:'percent',value:1000,minimum_subtotal_cents:0,amount:50});
+  assert.equal(q.data.item_totals.discount,50);assert.equal(q.data.item_totals.tax,24);assert.equal(q.data.item_totals.total,474);
+  const paid=await f.pay(q);assert.equal(paid.data.totals.total,1099);assert.equal(f.state.paymentRequests[0].amount_money.amount,1099);
+  assert.equal([...f.state.orders.values()][0].discounts[0].amount_money.amount,50);await f.flush();f.close();
 });
-test('promotion cents boundary, expedited price, and manual off switch',async()=>{
-  const rates=[{id:'fast',amount:900},{id:'slow',amount:600}];
-  assert.equal(promotionalRates([{price_cents:2500,quantity:1}],rates)[1].amount,600);
-  assert.equal(promotionalRates([{price_cents:2501,quantity:1}],rates)[1].amount,0);
-  const f=fixture(),q=await f.quote([{slug:lip,quantity:6}]);
-  const paid=await f.pay(q,{rate_id:q.data.rates[1].id});assert.equal(paid.data.totals.total,4069);await f.flush();f.close();
-  const g=fixture(),old=store.free_shipping.enabled;
-  try{
-    const stale=await g.quote([{slug:lip,quantity:6}]);store.free_shipping.enabled=false;
-    assert.equal((await g.pay(stale)).data.code,'QUOTE_EXPIRED');
-    assert.equal((await g.quote([{slug:lip,quantity:6}])).data.rates[0].amount,625);
-  }finally{store.free_shipping.enabled=old;g.close();}
+test('free shipping works only through an eligible code and leaves expedited shipping priced',async()=>{
+  const f=fixture();
+  await f.request('/api/admin/discount-codes',{action:'create',code:'FREESHIP25',kind:'free_shipping',value:0,minimum_subtotal_cents:2501},admin(f));
+  const noCode=await f.quote([{slug:lip,quantity:6}]);assert.equal(noCode.data.rates[0].amount,625);
+  const q=await f.quote([{slug:lip,quantity:6}],address,'freeship25');assert.equal(q.status,200);assert.equal(q.data.rates[0].amount,0);assert.equal(q.data.rates[0].free_shipping,true);assert.equal(q.data.rates[1].amount,910);
+  assert.equal((await f.quote([{slug:lip,quantity:5}],address,'freeship25')).data.code,'DISCOUNT_INVALID');
+  const paid=await f.pay(q);assert.equal(paid.data.totals.total,3159);assert.equal([...f.state.orders.values()][0].service_charges.length,0);await f.flush();f.close();
 });
-test('live configuration uses real rates, all-destination tax, and promotional total',async()=>{
+test('discount codes are safely deactivated and stale quotes cannot charge',async()=>{
+  const f=fixture();
+  assert.equal((await f.request('/api/admin/discount-codes',{action:'create',code:'TAKE5',kind:'fixed',value:500,minimum_subtotal_cents:0},admin(f))).status,201);
+  assert.equal((await f.request('/api/admin/discount-codes',{action:'create',code:'TAKE5',kind:'fixed',value:500,minimum_subtotal_cents:0},admin(f))).data.code,'DISCOUNT_EXISTS');
+  const q=await f.quote(undefined,address,'TAKE5');assert.equal(q.data.item_totals.discount,500);
+  assert.equal((await f.request('/api/admin/discount-codes',{action:'set-active',code:'TAKE5',active:false},admin(f))).status,200);
+  assert.equal((await f.pay(q)).data.code,'QUOTE_EXPIRED');assert.equal(f.state.paymentCalls,0);
+  const codes=await f.request('/api/admin/discount-codes',undefined,admin(f));assert.equal(codes.data.discount_codes[0].active,0);f.close();
+});
+test('live configuration uses real rates, all-destination tax, and an optional code',async()=>{
   const f=fixture();emails(f);Object.assign(f.env,{STORE_MODE:'live',SQUARE_ENVIRONMENT:'production',LIVE_LAUNCH_CONFIRMED:'true',SHIPPO_API_KEY:'shippo_live_fixture'});
-  const q=await f.quote([{slug:cbd,quantity:1}],{...address,state:'NY'});assert.equal(q.status,200);
+  await f.request('/api/admin/discount-codes',{action:'create',code:'FREESHIP',kind:'free_shipping',value:0,minimum_subtotal_cents:0},admin(f));
+  const q=await f.quote([{slug:cbd,quantity:1}],{...address,state:'NY'},'FREESHIP');assert.equal(q.status,200);
   assert.equal(q.data.item_totals.tax,170);assert.equal(q.data.rates[0].amount,0);
   const p=await f.pay(q);assert.equal(p.data.totals.total,3370);await f.flush();assert.equal(f.state.emails.length,2);f.close();
 });

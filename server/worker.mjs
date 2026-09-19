@@ -1,6 +1,6 @@
 import {store, products, StoreError, fail, now, uuid, digest, hmac, safeEqual, clean, address, normalizeCart, makeLines, checkDestination, totals, publicProduct, ready, money, promotionalRates} from './core.mjs';
 import {catalog, shipping, square, squareAddress, squareOrder, sendEmail} from './providers.mjs';
-const checkoutPolicy=()=>JSON.stringify({version:3,tax:store.tax,promotion:store.free_shipping});
+const checkoutPolicy=()=>JSON.stringify({version:4,tax:store.tax});
 const stmt = (env,sql,...values) => env.DB.prepare(sql).bind(...values);
 const first = (env,sql,...values) => stmt(env,sql,...values).first();
 const all = async (env,sql,...values) => (await stmt(env,sql,...values).all()).results;
@@ -14,7 +14,21 @@ async function limit(env, req, scope, max=30) {
 }
 function admin(req,env) { if (!env.ADMIN_TOKEN || env.ADMIN_TOKEN.length<32 || !safeEqual(req.headers.get('Authorization') || '',`Bearer ${env.ADMIN_TOKEN}`)) fail('Sign in to manage the store.',401); }
 async function ownedOrder(env,id,session) { const o=await first(env,'SELECT * FROM orders WHERE id=? AND session_hash=?',id,session); if (!o) fail('Order not found in this browser.',404); return o; }
-function publicOrder(o) { const d=JSON.parse(o.data); return {id:o.id,status:o.status,lines:d.lines.map(p=>({name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),totals:d.totals,refunded_cents:d.refunded_cents || 0,carrier:d.rate.carrier,service:d.rate.service,receipt_url:d.receipt_url || null,tracking:d.tracking || null}; }
+function publicOrder(o) { const d=JSON.parse(o.data); return {id:o.id,status:o.status,lines:d.lines.map(p=>({name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),totals:d.totals,discount:d.discount || null,refunded_cents:d.refunded_cents || 0,carrier:d.rate.carrier,service:d.rate.service,receipt_url:d.receipt_url || null,tracking:d.tracking || null}; }
+function discountCode(value) {
+  const code=clean(value,32).toUpperCase();
+  if (code && !/^[A-Z0-9][A-Z0-9-]{2,31}$/.test(code)) fail('Enter a valid discount code.',400,'DISCOUNT_INVALID');
+  return code;
+}
+async function resolveDiscount(env,input,subtotal) {
+  const code=discountCode(input); if (!code) return null;
+  const row=await first(env,'SELECT code,kind,value,minimum_subtotal_cents FROM discount_codes WHERE code=? AND active=1',code);
+  if (!row || subtotal<row.minimum_subtotal_cents) fail('That discount code is not available for this order.',400,'DISCOUNT_INVALID');
+  const amount=row.kind==='percent' ? Math.round(subtotal*row.value/10000) : row.kind==='fixed' ? row.value : 0;
+  if (row.kind!=='free_shipping' && amount<1) fail('That discount code is not available for this order.',400,'DISCOUNT_INVALID');
+  return {code:row.code,kind:row.kind,value:Number(row.value),minimum_subtotal_cents:Number(row.minimum_subtotal_cents),amount:Math.min(amount,subtotal)};
+}
+const sameDiscount=(a,b)=>JSON.stringify(a || null)===JSON.stringify(b || null);
 async function finishPayment(env,o,payment) {
   if (!payment || payment.order_id!==o.square_order_id || Number(payment.amount_money?.amount)!==JSON.parse(o.data).totals.total || payment.amount_money?.currency!=='USD') fail('Payment requires an order check. Please contact Gwyn.',503,'PAYMENT_MISMATCH');
   const state=payment.status === 'COMPLETED' ? (Number(payment.refunded_money?.amount || 0)>=Number(payment.amount_money.amount) ? 'refunded' : 'paid') : ['CANCELED','FAILED'].includes(payment.status) ? 'failed' : 'processing';
@@ -26,7 +40,8 @@ async function finishPayment(env,o,payment) {
 async function confirmation(env,o) {
   if (o.status!=='paid') return;
   const d=JSON.parse(o.data), t=d.totals;
-  const summary=`Order: ${o.id}\n${d.lines.map(p=>`${p.quantity} × ${p.name} (${p.size}) — $${money(p.price_cents*p.quantity)}`).join('\n')}\n\nItems: $${money(t.subtotal)}\nShipping: $${money(t.shipping)} (${d.rate.carrier} ${d.rate.service})\nSales tax (5.3%): $${money(t.tax)}\nTotal: $${money(t.total)} USD`;
+  const discountSummary=d.discount ? d.discount.kind==='free_shipping' ? `\nDiscount code ${d.discount.code}: Free shipping` : `\nDiscount code ${d.discount.code}: -$${money(t.discount)}` : '';
+  const summary=`Order: ${o.id}\n${d.lines.map(p=>`${p.quantity} × ${p.name} (${p.size}) — $${money(p.price_cents*p.quantity)}`).join('\n')}\n\nItems: $${money(t.subtotal)}${discountSummary}\nShipping: $${money(t.shipping)} (${d.rate.carrier} ${d.rate.service})\nSales tax (5.3%): $${money(t.tax)}\nTotal: $${money(t.total)} USD`;
   // Independent flags/keys: failure of one recipient never suppresses the other's notification.
   await Promise.allSettled([
     (async()=>{
@@ -118,8 +133,11 @@ async function checkout(req,env,session,ctx) {
   const billing=address(b.billing || data.address,true);
   const live=await catalog(env), lines=makeLines(data.lines,live);
   if (lines.some(p=>p.price_cents!==data.lines.find(x=>x.slug===p.slug).price_cents || p.variation_id!==data.lines.find(x=>x.slug===p.slug).variation_id)) fail('A product price has changed. Please get new shipping rates.',409,'QUOTE_EXPIRED');
-  const t={...data.item_totals,shipping:rate.amount,total:data.item_totals.subtotal+data.item_totals.tax+rate.amount};
-  const d={id:uuid(),lines,address:data.address,rate,totals:t,parcels:data.parcels};
+  let currentDiscount;
+  try { currentDiscount=await resolveDiscount(env,data.discount?.code || '',data.item_totals.subtotal); } catch { fail('Your discount code has changed. Please get new shipping rates.',409,'QUOTE_EXPIRED'); }
+  if (!sameDiscount(currentDiscount,data.discount)) fail('Your discount code has changed. Please get new shipping rates.',409,'QUOTE_EXPIRED');
+  const t={...data.item_totals,shipping:rate.amount,total:data.item_totals.total+rate.amount};
+  const d={id:uuid(),lines,address:data.address,rate,totals:t,discount:data.discount || null,parcels:data.parcels};
   const insert=await run(env,'INSERT OR IGNORE INTO orders(id,quote_id,session_hash,status,data,created_at,updated_at) VALUES(?,?,?,\'processing\',?,?,?)',d.id,q.id,session,JSON.stringify(d),now(),now());
   if (!insert.meta.changes) return json(publicOrder(await first(env,'SELECT * FROM orders WHERE quote_id=?',q.id)),202);
   o=await first(env,'SELECT * FROM orders WHERE id=?',d.id);
@@ -178,16 +196,23 @@ async function route(req,env,ctx,session) {
     if (pending) fail(`Order ${pending.id} is still being checked. Open your order confirmation page or contact Gwyn before placing another order.`,409,'PAYMENT_PENDING');
     const b=await body(req),a=address(b.address),cart=normalizeCart(b.cart);
     checkDestination(cart.map(l=>products.find(p=>p.slug===l.slug)),a);
-    const fingerprint=await digest(JSON.stringify({cart,a,shipping_policy:checkoutPolicy()}));
+    const requestedCode=discountCode(b.discount_code);
+    const fingerprint=await digest(JSON.stringify({cart,a,discount_code:requestedCode,shipping_policy:checkoutPolicy()}));
     const cached=await first(env,'SELECT * FROM quotes WHERE session_hash=? AND fingerprint=? AND expires_at>? AND status=\'open\' AND id NOT IN (SELECT quote_id FROM orders) ORDER BY created_at DESC LIMIT 1',session,fingerprint,now()+60);
-    if (cached) return quoteResponse(cached);
+    if (cached) {
+      const cachedData=JSON.parse(cached.data),current=await resolveDiscount(env,requestedCode,cachedData.item_totals.subtotal);
+      if (sameDiscount(current,cachedData.discount)) return quoteResponse(cached);
+      await run(env,'UPDATE quotes SET status=\'closed\' WHERE id=?',cached.id);
+    }
     const lines=makeLines(cart,await catalog(env)); checkDestination(lines,a);
-    const [ship,calculated]=await Promise.all([shipping(env,lines,a),square(env,'/orders/calculate',{order:squareOrder(env,{id:uuid(),lines,address:a,totals:totals(lines,0,a),rate:{carrier:'',service:''}}).order})]);
-    const itemTotals=totals(lines,0,a),tax=Number(calculated.order?.total_tax_money?.amount);
-    if (!Number.isInteger(tax) || tax<0 || Math.abs(tax-itemTotals.tax)>lines.length || Number(calculated.order.total_money?.amount)!==itemTotals.subtotal+tax) fail('The tax total could not be confirmed.',503);
-    itemTotals.tax=tax;itemTotals.total=itemTotals.subtotal+tax;
-    ship.rates=promotionalRates(lines,ship.rates);
-    const q={id:uuid(),expires_at:now()+store.quote_minutes*60,data:JSON.stringify({shipping_policy:checkoutPolicy(),lines,address:a,item_totals:itemTotals,...ship})};
+    const beforeDiscount=totals(lines,0,a),discount=await resolveDiscount(env,requestedCode,beforeDiscount.subtotal);
+    const expected=totals(lines,0,a,discount?.amount || 0);
+    const [ship,calculated]=await Promise.all([shipping(env,lines,a),square(env,'/orders/calculate',{order:squareOrder(env,{id:uuid(),lines,address:a,totals:expected,discount,rate:{carrier:'',service:''}}).order})]);
+    const itemTotals=expected,tax=Number(calculated.order?.total_tax_money?.amount);
+    if (!Number.isInteger(tax) || tax<0 || Math.abs(tax-itemTotals.tax)>lines.length || Number(calculated.order.total_money?.amount)!==itemTotals.subtotal-itemTotals.discount+tax) fail('The tax total could not be confirmed.',503);
+    itemTotals.tax=tax;itemTotals.total=itemTotals.subtotal-itemTotals.discount+tax;
+    ship.rates=promotionalRates(ship.rates,discount?.kind==='free_shipping');
+    const q={id:uuid(),expires_at:now()+store.quote_minutes*60,data:JSON.stringify({shipping_policy:checkoutPolicy(),lines,address:a,discount,item_totals:itemTotals,...ship})};
     await run(env,'INSERT INTO quotes(id,session_hash,fingerprint,data,created_at,expires_at) VALUES(?,?,?,?,?,?)',q.id,session,fingerprint,q.data,now(),q.expires_at);
     return quoteResponse(q);
   }
@@ -221,6 +246,24 @@ async function route(req,env,ctx,session) {
     await limit(env,req,'admin',100); admin(req,env);
     if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:products.filter(p=>p.square_variation_id).length,total:products.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
     if (p==='/api/admin/orders' && req.method==='GET') return json({orders:(await all(env,'SELECT * FROM orders ORDER BY created_at DESC LIMIT 100')).map(o=>({...publicOrder(o),created_at:o.created_at,fulfilled_at:o.fulfilled_at,square_order_id:o.square_order_id,payment_id:o.payment_id,recovery_note:o.recovery_note,email_sent:!!o.email_sent,owner_email_sent:!!o.owner_email_sent,address:JSON.parse(o.data).address,parcels:JSON.parse(o.data).parcels}))});
+    if (p==='/api/admin/discount-codes' && req.method==='GET') return json({discount_codes:await all(env,'SELECT code,kind,value,minimum_subtotal_cents,active,created_at,updated_at FROM discount_codes ORDER BY active DESC, created_at DESC')});
+    if (p==='/api/admin/discount-codes' && req.method==='POST') {
+      const b=await body(req),code=discountCode(b.code);
+      if (!code) fail('Enter a discount code.');
+      if (b.action==='create') {
+        if (!['fixed','percent','free_shipping'].includes(b.kind) || !Number.isInteger(b.value) || !Number.isInteger(b.minimum_subtotal_cents) || b.minimum_subtotal_cents<0) fail('Enter valid discount details.');
+        if ((b.kind==='percent' && (b.value<1 || b.value>10000)) || (b.kind==='fixed' && (b.value<1 || b.value>1000000)) || (b.kind==='free_shipping' && b.value!==0)) fail('Enter a valid discount amount.');
+        try { await run(env,'INSERT INTO discount_codes(code,kind,value,minimum_subtotal_cents,active,created_at,updated_at) VALUES(?,?,?,?,1,?,?)',code,b.kind,b.value,b.minimum_subtotal_cents,now(),now()); }
+        catch { fail('A code with that name already exists. Deactivate it instead of replacing its history.',409,'DISCOUNT_EXISTS'); }
+        return json({ok:true},201);
+      }
+      if (b.action==='set-active' && typeof b.active==='boolean') {
+        const changed=await run(env,'UPDATE discount_codes SET active=?,updated_at=? WHERE code=?',b.active?1:0,now(),code);
+        if (!changed.meta.changes) fail('Discount code not found.',404);
+        return json({ok:true});
+      }
+      fail('Invalid discount code action.');
+    }
     if (p==='/api/admin/reviews' && req.method==='GET') return json({reviews:await all(env,'SELECT id,slug,rating,author,body,status,created_at FROM reviews ORDER BY created_at DESC LIMIT 100')});
     if (p==='/api/admin/reviews' && req.method==='POST') {
       const b=await body(req); if (!['published','rejected','pending'].includes(b.status)) fail('Invalid review status.');
@@ -243,7 +286,7 @@ async function route(req,env,ctx,session) {
   }
   fail('Not found.',404);
 }
-function quoteResponse(q) { const d=JSON.parse(q.data);return json({id:q.id,expires_at:q.expires_at,lines:d.lines.map(p=>({slug:p.slug,name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),item_totals:d.item_totals,rates:d.rates.map(({shippo_rate_ids,carrier_amount,...r})=>r)}); }
+function quoteResponse(q) { const d=JSON.parse(q.data);return json({id:q.id,expires_at:q.expires_at,lines:d.lines.map(p=>({slug:p.slug,name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),discount:d.discount || null,item_totals:d.item_totals,rates:d.rates.map(({shippo_rate_ids,carrier_amount,...r})=>r)}); }
 const CSP="default-src 'self'; script-src 'self' https://web.squarecdn.com https://sandbox.web.squarecdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://web.squarecdn.com https://sandbox.web.squarecdn.com; font-src 'self' https://fonts.gstatic.com https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net; img-src 'self' data: https://*.squarecdn.com; connect-src 'self' https://pci-connect.squareup.com https://pci-connect.squareupsandbox.com https://*.squarecdn.com https://o160250.ingest.sentry.io; frame-src https://web.squarecdn.com https://sandbox.web.squarecdn.com https://*.squareup.com https://*.squareupsandbox.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 export default {
   async fetch(req,env,ctx={waitUntil(){}}) {

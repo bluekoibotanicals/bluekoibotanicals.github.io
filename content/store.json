@@ -4,7 +4,7 @@
   "currency": "USD",
   "processing_days": "1–3 days",
   "tax": {"origin": "Charlottesville, Virginia", "virginia_basis_points": 530, "shipping_taxable": false, "apply_to_all_destinations": true},
-  "free_shipping": {"enabled": true, "threshold_cents": 2500, "banner": "Free shipping on the first 50 orders over $25.", "terms": "Merchandise subtotal must exceed $25 before tax. Applies to the lowest-priced available shipping service; expedited upgrades cost extra."},
+  "free_shipping": {"enabled": false, "threshold_cents": 2500, "banner": "Free shipping is available with an eligible discount code.", "terms": "When an eligible free-shipping code is applied, it covers the lowest-priced available shipping service. Expedited upgrades cost extra."},
   "packages": {
     "small": {"length": 4, "width": 4, "height": 4, "weight_lb": 0.1},
     "large": {"length": 8, "width": 6, "height": 4, "weight_lb": 0.22}

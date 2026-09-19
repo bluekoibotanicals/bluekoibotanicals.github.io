@@ -46,11 +46,13 @@ export function checkDestination(lines, a) {
   if (a.country !== 'US' || !US_STATES.has(a.state)) fail('We ship only to the 50 U.S. states and Washington, D.C.',400,'US_ONLY');
   if (lines.some(p=>p.cbd) && ['CO','ID','WY'].includes(a.state)) fail('CBD products cannot ship to Colorado, Idaho, or Wyoming. Remove CBD items or use an eligible delivery address.',400,'CBD_STATE_RESTRICTED');
 }
-export function totals(lines, shipping, a) {
+export function totals(lines, shipping, a, discount = 0) {
   if (!Number.isInteger(shipping) || shipping < 0) fail('Invalid shipping price.');
   const subtotal = lines.reduce((sum,p) => sum + p.price_cents * p.quantity, 0);
-  const tax = Math.round(subtotal * store.tax.virginia_basis_points / 10000);
-  return {subtotal, shipping, tax, total:subtotal+shipping+tax, currency:'USD'};
+  if (!Number.isInteger(discount) || discount < 0) fail('Invalid discount.');
+  discount = Math.min(discount, subtotal);
+  const tax = Math.round((subtotal-discount) * store.tax.virginia_basis_points / 10000);
+  return {subtotal, discount, shipping, tax, total:subtotal-discount+shipping+tax, currency:'USD'};
 }
 export function parcels(lines) {
   const quantity=lines.reduce((n,p)=>n+p.quantity,0),box=store.packages[quantity>1?'large':lines[0]?.package];
@@ -58,10 +60,8 @@ export function parcels(lines) {
   if(!quantity || !box || !Number.isFinite(netWeight) || netWeight<=0)fail('Package details need to be checked.',503,'SHIPPING_SETUP');
   return [{description:lines.map(p=>`${p.quantity} × ${p.name}`).join(', '),items:lines.map(p=>({slug:p.slug,name:p.name,quantity:p.quantity})),value:money(lines.reduce((n,p)=>n+p.price_cents*p.quantity,0)),net_weight:netWeight,parcel:{length:String(box.length),width:String(box.width),height:String(box.height),distance_unit:'in',weight:String(Number((netWeight+box.weight_lb).toFixed(4))),mass_unit:'lb'}}];
 }
-export function promotionalRates(lines,rates) {
-  const promo=store.free_shipping;
-  const subtotal=lines.reduce((n,p)=>n+p.price_cents*p.quantity,0);
-  if(!promo?.enabled || subtotal<=promo.threshold_cents)return rates;
+export function promotionalRates(rates, freeShipping = false) {
+  if (!freeShipping) return rates;
   // The least expensive available service is free; faster services retain their quoted price.
   const cheapest=rates.reduce((best,r)=>r.amount<best.amount?r:best,rates[0]);
   return rates.map(r=>r.id===cheapest.id?{...r,carrier_amount:r.amount,amount:0,free_shipping:true}:r);

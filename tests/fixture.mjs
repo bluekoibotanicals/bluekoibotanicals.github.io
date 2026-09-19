@@ -11,7 +11,7 @@ export function fixture(){
   const state={paymentCalls:0,shippingCalls:0,catalogCalls:0,orders:new Map(),payments:new Map(),stock:{},prices:{},failPayment:false,timeoutPayment:false,decline:false,emails:[],emailKeys:new Set(),failEmailTo:null,paymentRequests:[]};
   const env={DB,STORE_MODE:'sandbox',SITE_URL:'https://store.example',SQUARE_ENVIRONMENT:'sandbox',SQUARE_APPLICATION_ID:'sandbox-app',SQUARE_LOCATION_ID:'location',SQUARE_ACCESS_TOKEN:'test-only',SHIPPO_API_KEY:'shippo_test_fixture',SHIP_FROM_JSON:JSON.stringify({name:'Blue Koi',street1:'Test origin',city:'Charlottesville',state:'VA',zip:'22902',country:'US',phone:'2025550123'}),CUSTOMS_SIGNER:'Test owner',ADMIN_TOKEN:'test-admin-key-32-characters-long-only',SQUARE_WEBHOOK_SIGNATURE_KEY:'test-webhook',SQUARE_WEBHOOK_URL:'https://store.example/api/webhooks/square'};
   const response=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-  function orderTotals(order){const subtotal=order.line_items.reduce((n,p)=>n+p.base_price_money.amount*Number(p.quantity),0),tax=order.taxes?.length?Math.round(subtotal*0.053):0,shipping=order.service_charges?.reduce((n,p)=>n+p.amount_money.amount,0)||0;return {...order,total_money:{amount:subtotal+tax+shipping,currency:'USD'},total_tax_money:{amount:tax,currency:'USD'}};}
+  function orderTotals(order){const subtotal=order.line_items.reduce((n,p)=>n+p.base_price_money.amount*Number(p.quantity),0),discount=order.discounts?.reduce((n,p)=>n+p.amount_money.amount,0)||0,tax=order.taxes?.length?Math.round((subtotal-discount)*0.053):0,shipping=order.service_charges?.reduce((n,p)=>n+p.amount_money.amount,0)||0;return {...order,total_money:{amount:subtotal-discount+tax+shipping,currency:'USD'},total_tax_money:{amount:tax,currency:'USD'},total_discount_money:{amount:discount,currency:'USD'}};}
   env.FETCH=async(url,options={})=>{
     const path=new URL(url).pathname,b=options.body?JSON.parse(options.body):{};
     if(path==='/v2/catalog/batch-retrieve'){state.catalogCalls++;return response({objects:products.map(p=>({id:p.square_variation_id,item_variation_data:{track_inventory:true,price_money:{amount:state.prices[p.slug] || p.price_cents,currency:'USD'}}}))});}
@@ -47,7 +47,7 @@ export function fixture(){
     if(r.headers.has('Set-Cookie'))cookie=r.headers.get('Set-Cookie').split(';')[0];
     return {status:r.status,data:await r.json(),headers:r.headers};
   }
-  async function quote(cart=[{slug:'honey-lavender-lip-balm',quantity:1}],a=address){return request('/api/quote',{cart,address:a});}
+  async function quote(cart=[{slug:'honey-lavender-lip-balm',quantity:1}],a=address,discount_code=''){return request('/api/quote',{cart,address:a,discount_code});}
   async function pay(q,extra={}){return request('/api/checkout',{quote_id:q.data.id,rate_id:q.data.rates[0].id,source_id:'cnon:test-only-token',...extra});}
   return {env,state,request,quote,pay,flush:()=>Promise.all(tasks),close:()=>DB.close()};
 }
