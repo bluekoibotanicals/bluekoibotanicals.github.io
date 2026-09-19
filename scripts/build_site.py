@@ -4,9 +4,10 @@ from pathlib import Path
 from html import escape
 import json
 import shutil
+from commerce_pages import render_commerce_pages
 
 ROOT = Path(__file__).resolve().parents[1]
-PRODUCTS = json.loads((ROOT / 'content/products.json').read_text())
+PRODUCTS = json.loads((ROOT / 'content/products.json').read_text(encoding='utf-8'))
 BY_SLUG = {p['slug']: p for p in PRODUCTS}
 SHOP = 'https://blue-koi-botanicals-llc.square.site'
 EMAIL = 'blue.koi.botanicals@gmail.com'
@@ -15,7 +16,7 @@ CATEGORIES = {
     'body-oils': ('Body Oils', 'A few drops after a shower.', 'Our body oils start with meadowfoam and jojoba. They spread easily over damp skin and leave a light sheen. Choose from four scents, from soft florals to warm cedarwood.', 'category-body-oils', 'Four scents · 4 fl oz'),
     'magnesium-sprays': ('Magnesium Body Mists', 'Rose or lavender. Your choice.', 'Magnesium chloride, flower water, and aloe in a spray bottle. Choose rose for its fresh floral scent or lavender for a softer herbal scent. Start with a small amount and follow the directions on your bottle.', 'category-magnesium-sprays', 'Two scents · 4 fl oz'),
     'lip-balms': ('Lip Balms', 'Something for your pocket.', 'Beeswax, cocoa butter, shea butter, meadowfoam, and jojoba make a balm for dry lips. Honey Lavender is lightly sweet and floral; Lavender Spearmint has a fresh, minty scent.', 'category-lip-balms', 'Two blends · 0.19 oz'),
-    'body-butters': ('Whipped Body Butters', 'For the spots that need more moisture.', 'Shea and cocoa butters, whipped with meadowfoam and jojoba oils for a rich texture. A small scoop is plenty to start with. Choose lavender, jasmine, cedarwood vanilla, or no added scent.', 'category-body-butters', 'Four choices · 4 oz'),
+    'body-butters': ('Whipped Body Butters', 'For the spots that need more moisture.', 'Shea and cocoa butters, whipped with meadowfoam and jojoba oils for a rich texture. A small scoop is plenty to start with. Choose your favorite scent and size below.', 'category-body-butters', '8 oz jars · Jasmine also in 4 oz'),
 }
 PHOTOS = {
     'category-cbd-salves': ('category-cbd-salves.jpeg', 'Blue Koi CBD Salves in 2 oz and 4 oz jars', '1122', '1402'),
@@ -60,14 +61,14 @@ def nav(prefix, active):
 <header class="site-header"><nav class="nav wrap" aria-label="Main navigation">
 <a class="brand" href="{prefix}index.html" aria-label="Blue Koi Botanicals home"><img src="{prefix}assets/logo.png" alt="" width="68" height="68"><span class="brand-name">Blue Koi<small>Botanicals</small></span></a>
 <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="main-navigation">Menu</button>
-<ul id="main-navigation" class="nav-links">{links}<li class="shop-nav"><a class="button" href="{SHOP}" target="_blank" rel="noopener noreferrer">Shop online</a></li></ul>
+<ul id="main-navigation" class="nav-links">{links}<li class="shop-nav"><a class="button" href="{prefix}cart.html">Your bag <span data-cart-count aria-label="items in bag">0</span></a></li></ul>
 </nav></header>'''
 
 
 def footer(prefix):
     return f'''<footer class="site-footer"><div class="wrap">
 <div class="footer-top"><div><a class="footer-brand" href="{prefix}index.html">Blue Koi Botanicals</a><p>Body care made by hand in Virginia.<br>Thanks for supporting a small business.</p></div>
-<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact Gwyn</a></li><li><a href="{SHOP}" target="_blank" rel="noopener noreferrer">Shop online</a></li></ul>
+<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact Gwyn</a></li><li><a href="{prefix}shipping-returns.html">Shipping &amp; returns</a></li><li><a href="{prefix}privacy.html">Privacy</a></li></ul>
 <div><div class="footer-label">Have a question?</div><a class="footer-email" href="mailto:{EMAIL}">{EMAIL}</a><p>Based in Charlottesville, Virginia.</p></div></div>
 <div class="footer-bottom"><p>© 2026 Blue Koi Botanicals LLC</p><p>For external use only. Statements on this site have not been evaluated by the FDA. Products are not intended to diagnose, treat, cure, or prevent disease.</p></div>
 </div></footer>'''
@@ -82,9 +83,9 @@ def page(path, title, description, body, active='products.html'):
 <meta name="theme-color" content="#173d52"><link rel="icon" type="image/png" href="{prefix}assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{prefix}css/styles.css"><script defer src="{prefix}js/site.js"></script>
-</head><body>{nav(prefix, active)}<main id="main">{body}</main>{footer(prefix)}</body></html>'''
-    (ROOT / path).write_text(doc + '\n')
+<link rel="stylesheet" href="{prefix}css/styles.css"><link rel="stylesheet" href="{prefix}css/commerce.css"><script defer src="{prefix}js/site.js"></script><script type="module" src="{prefix}js/commerce.js"></script>
+</head><body>{nav(prefix, active)}<main id="main"><noscript><p class="notice wrap">Please enable JavaScript to use the shopping bag and checkout, or email Gwyn for help placing an order.</p></noscript>{body}</main>{footer(prefix)}</body></html>'''
+    (ROOT / path).write_text(doc + '\n', encoding='utf-8')
 
 
 def category_nav(prefix='', active=''):
@@ -93,13 +94,13 @@ def category_nav(prefix='', active=''):
 
 
 def product_photo(p):
-    return p['slug']
+    return p.get('photo_slug', p['slug'])
 
 
 def product_card(p, prefix='', brief=False):
     return f'''<a class="product-card" href="{prefix}products/{p['slug']}.html">
 {photo(product_photo(p), prefix, extra='product-shot')}<div class="card-meta">{e(p['display_size'])}</div>
-<div class="card-title"><h3>{e(p['name'])}</h3><span class="price">{e(p['price'])}</span></div>
+<div class="card-title"><h3>{e(p['name'])}</h3><span class="price" data-product-price="{p['slug']}">{e(p['price'])}</span></div><span class="stock-note" data-stock="{p['slug']}">{'Sold out' if not p['stock_snapshot'] else ''}</span>
 {'' if brief else '<p>'+e(p['description'])+'</p>'}<span class="text-link">Take a closer look</span></a>'''
 
 
@@ -108,7 +109,7 @@ def render_home():
     features = ''
     for slug in ['jasmine-body-oil', 'jasmine-whipped-body-butter']:
         p = BY_SLUG[slug]
-        features += f'<a class="feature-card" href="products/{slug}.html">{photo(product_photo(p), extra="product-shot")}<div class="card-title"><h3>{p["name"]}</h3><span class="price">{p["price"]}</span></div><p>{e(p["description"])}</p><span class="text-link">Meet the {"oil" if p["category"] == "body-oils" else "butter"}</span></a>'
+        features += f'<a class="feature-card" href="products/{slug}.html">{photo(product_photo(p), extra="product-shot")}<div class="card-title"><h3>{p["name"]}</h3><span class="price" data-product-price="{slug}">{p["price"]}</span></div><p>{e(p["description"])}</p><span class="text-link">Meet the {"oil" if p["category"] == "body-oils" else "butter"}</span></a>'
     body = f'''<section class="hero"><div class="wrap hero-grid"><div>
 <p class="eyebrow">Handmade in Virginia</p><h1>Body care,<br><em>made by hand.</em></h1>
 <p class="lead">We make body oils, salves, balms, and butters in small batches here in Virginia. Take a look around, or come say hello at the market.</p>
@@ -126,13 +127,13 @@ def render_products():
     for slug, v in CATEGORIES.items():
         cards = ''.join(product_card(p, brief=True) for p in PRODUCTS if p['category'] == slug)
         sections += f'<section id="{slug}" class="catalog-category"><div class="section-head"><div><h2>{v[0]}</h2><p>{v[1]}</p></div><a class="text-link" href="products/{slug}.html">About our {v[0].lower()}</a></div><div class="product-grid">{cards}</div></section>'
-    body = f'<section class="page-top"><div class="wrap"><p class="eyebrow">Our products</p><h1>The Blue Koi collection.</h1><p class="lead">Something for dry hands, a favorite scent after a shower, or a lip balm to keep close. Here’s the whole Blue Koi collection.</p>{category_nav()}</div></section><div class="wrap product-section">{sections}<p class="shop-note">Orders are placed through our online shop. Check there for current stock and checkout prices.</p></div>'
+    body = f'<section class="page-top"><div class="wrap"><p class="eyebrow">Our products</p><h1>The Blue Koi collection.</h1><p class="lead">Something for dry hands, a favorite scent after a shower, or a lip balm to keep close. Here’s the whole Blue Koi collection.</p>{category_nav()}</div></section><div class="wrap product-section">{sections}<p class="shop-note">Orders process in 1–3 days. Choose your delivery service and see current shipping rates at checkout.</p></div>'
     page('products.html', 'Our Products', 'Browse the Blue Koi collection: handmade body oils, CBD salves, magnesium mists, lip balms, and whipped body butters.', body)
     for slug, v in CATEGORIES.items():
         selected = [p for p in PRODUCTS if p['category'] == slug]
         cards = ''.join(product_card(p, '../') for p in selected)
         grid = 'product-grid pair' if len(selected) == 2 else 'product-grid'
-        body = f'<section class="page-top"><div class="wrap"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><span>{v[0]}</span></div><p class="eyebrow">{v[4]}</p><h1>{v[0]}</h1><p class="lead">{v[2]}</p>{category_nav("../", slug)}</div></section><section class="product-section"><div class="wrap"><div class="{grid}">{cards}</div><p class="shop-note">Visit our online shop for current availability and checkout prices.</p></div></section>'
+        body = f'<section class="page-top"><div class="wrap"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><span>{v[0]}</span></div><p class="eyebrow">{v[4]}</p><h1>{v[0]}</h1><p class="lead">{v[2]}</p>{category_nav("../", slug)}</div></section><section class="product-section"><div class="wrap"><div class="{grid}">{cards}</div><p class="shop-note">Choose your products here, then see shipping options and tax at checkout.</p></div></section>'
         page('products/'+slug+'.html', v[0], v[2], body)
 
 
@@ -147,8 +148,10 @@ def render_detail(p):
     variants = ''
     for x in selected:
         label = x['display_size'] if p['category'] == 'cbd-salves' else x['name'].replace(' Whipped Body Butter', '').replace(' Magnesium Body Mist', '').replace(' Body Oil', '').replace(' Lip Balm', '')
+        if p['category'] == 'body-butters':
+            label = label.removesuffix(' 4 oz') + ' · ' + ('4 oz' if x['slug'].endswith('-4oz') else '8 oz')
         variants += f'<a href="{x["slug"]}.html"'+(' aria-current="page"' if x['slug'] == slug else '')+f'>{e(label)}</a>'
-    variant_label = 'Choose a size' if p['category'] == 'cbd-salves' else 'Choose your scent'
+    variant_label = 'Choose a size' if p['category'] == 'cbd-salves' else ('Choose your scent &amp; size' if p['category'] == 'body-butters' else 'Choose your scent')
     ingredients = '<ul class="ingredients">'+''.join('<li>'+e(x)+'</li>' for x in p['ingredients'])+'</ul>'
     info = details('How to use', '<p>'+e(p['use'])+'</p>', True)
     info += details('Ingredients', ingredients)
@@ -160,11 +163,12 @@ def render_detail(p):
     cards = ''.join(product_card(x, '../', True) for x in related)
     body = f'''<section class="product-detail wrap"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><a href="{p['category']}.html">{category}</a></div>
 <div class="detail-grid"><figure class="detail-image">{photo(product_photo(p), '../', True, 'product-shot')}</figure>
-<article class="detail-copy"><p class="eyebrow">{category}</p><h1>{e(p['name'])}</h1><div class="product-spec"><span class="price">{e(p['price'])}</span><span class="muted">{e(p['display_size'])}</span></div>
+<article class="detail-copy"><p class="eyebrow">{category}</p><h1>{e(p['name'])}</h1><div class="product-spec"><span class="price" data-product-price="{slug}">{e(p['price'])}</span><span class="muted">{e(p['display_size'])}</span></div>
 <p class="lead">{e(p['description'])}</p><p class="body-copy">{e(p['body'])}</p>
 <div class="variants"><p class="variants-label">{variant_label}</p><nav class="variant-list" aria-label="{variant_label}">{variants}</nav></div>
-<div class="buy-row"><a class="button" href="{SHOP}" target="_blank" rel="noopener noreferrer">Shop online</a><a class="text-link" href="../contact.html">Ask Gwyn a question</a></div><p class="small">See the shop for current stock and checkout prices.</p>
+<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>{'Sold out' if not p['stock_snapshot'] else 'Loading…'}</button><a class="text-link" href="../contact.html">Ask Gwyn a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD cannot ship to Colorado, Idaho, or Wyoming.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
 <div class="details-list">{info}</div>{lab}</article></div></section>
+<section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
 <section class="related"><div class="wrap"><div class="section-head"><h2>Also in this collection.</h2><a class="text-link" href="{p['category']}.html">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
     page('products/'+slug+'.html', p['name'], p['description'], body)
 
@@ -197,6 +201,9 @@ def stage():
     for directory in ['photos', 'coa']:
         shutil.copytree(ROOT / 'assets' / directory, dist / 'assets' / directory)
     shutil.copy2(ROOT / 'assets/logo.png', dist / 'assets/logo.png')
+    public = [{k:p[k] for k in ('slug','name','display_size','price_cents','stock_snapshot','online_enabled','cbd')} for p in PRODUCTS]
+    (dist / 'catalog.json').write_text(json.dumps(public), encoding='utf-8')
+    (ROOT / 'catalog.json').write_text(json.dumps(public), encoding='utf-8')
 
 
 if __name__ == '__main__':
@@ -206,5 +213,6 @@ if __name__ == '__main__':
         render_detail(product)
     render_story()
     render_contact()
+    render_commerce_pages(page, json.loads((ROOT / 'content/store.json').read_text(encoding='utf-8')))
     stage()
     print(f'Built {len(list(ROOT.glob("*.html"))) + len(list((ROOT / "products").glob("*.html")))} static pages and staged public assets.')

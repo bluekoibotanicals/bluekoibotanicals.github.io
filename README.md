@@ -1,15 +1,18 @@
 # Blue Koi Botanicals
 
-The refreshed static website for bluekoibotanicals.com.
+Custom Cloudflare storefront with Square payments/inventory, Shippo rates, Resend notifications, D1 orders, and verified reviews.
 
-All pages are ready to use on GitHub Pages. The existing page addresses, Square store, email contact, CNAME, and CBD lab report are retained.
+Start with [UPDATE.md](UPDATE.md). Production IDs, prices, and live configuration are preserved. No deployment or real transaction was performed.
 
-## Updating the site
+Windows PowerShell:
+```powershell
+npm.cmd test
+npm.cmd run build
+npm.cmd run dev
+```
 
-Upload the contents of this folder to the GitHub Pages repository root. The website does not need a package install or a server application.
+Node.js 22.13+ and Python 3 are required. Local development uses your own .dev.vars; without it the server defaults to preview mode. Production uses wrangler.jsonc and Cloudflare secrets. GitHub Pages alone cannot run checkout.
 
-Product descriptions and prices are in `content/products.json`. Shared page templates are in `scripts/build_site.py`. Run `python3 scripts/build_site.py` after editing these files to regenerate the HTML and the static preview output in `dist/`. Styles and navigation behavior are in `css/styles.css` and `js/site.js`.
+Product data: content/products.json. Tax/packages/promotion: content/store.json. Templates/build: scripts/. APIs: server/. Browser code: js/. Database migrations: migrations/.
 
-The current product images in `assets/photos/` use the supplied product photographs, formatted for a consistent, natural home-studio presentation.
-
-Prices are consistent across the website: 2 oz CBD salve $32, 4 oz CBD salve $58, oils $22, mists $19, lip balms $5, and body butters $28. Square remains the source for stock and checkout prices. Ingredient lists and product directions are preserved from the original product pages.
+See [SETUP.md](SETUP.md) for operations and [VERIFICATION.md](VERIFICATION.md) for testing scope.

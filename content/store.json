@@ -1,0 +1,17 @@
+{
+  "name": "Blue Koi Botanicals",
+  "email": "blue.koi.botanicals@gmail.com",
+  "currency": "USD",
+  "processing_days": "1–3 days",
+  "tax": {"origin": "Charlottesville, Virginia", "virginia_basis_points": 530, "shipping_taxable": false, "apply_to_all_destinations": true},
+  "free_shipping": {"enabled": true, "threshold_cents": 2500, "banner": "Free shipping on the first 50 orders over $25.", "terms": "Merchandise subtotal must exceed $25 before tax. Applies to the lowest-priced available shipping service; expedited upgrades cost extra."},
+  "packages": {
+    "small": {"length": 4, "width": 4, "height": 4, "weight_lb": 0.1},
+    "large": {"length": 8, "width": 6, "height": 4, "weight_lb": 0.22}
+  },
+  "packing_strategy": "combined_order_large_for_multiple_items",
+  "quote_minutes": 15,
+  "max_items_per_order": 12,
+  "review_delay_days": 10,
+  "review_expiry_days": 90
+}

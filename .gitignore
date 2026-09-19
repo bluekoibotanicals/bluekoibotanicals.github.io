@@ -4,3 +4,14 @@ __pycache__/
 .DS_Store
 dist/
 assets/images/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+.local/
+.wrangler/
+node_modules/
+test-results/
+square-catalog-candidates.json

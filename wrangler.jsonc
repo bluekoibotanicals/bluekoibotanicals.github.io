@@ -2,12 +2,13 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "blue-koi-storefront",
 	"main": "server/worker.mjs",
+	"workers_dev": false,
+	"routes": [{"pattern": "bluekoibotanicals.com/*", "zone_name": "bluekoibotanicals.com"}],
 	"compatibility_date": "2026-09-18",
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",
-		"run_worker_first": true,
-		"html_handling": "none"
+		"run_worker_first": true
 	},
 	"d1_databases": [
 		{
@@ -15,28 +16,23 @@
 			"database_name": "blue-koi-store",
 			"database_id": "bf52761f-0bec-4b08-b997-f7afdccfb3d6",
 			"migrations_dir": "migrations"
-		},
-		{
-			"binding": "blue_koi_store",
-			"database_name": "blue-koi-store",
-			"database_id": "bf52761f-0bec-4b08-b997-f7afdccfb3d6"
 		}
 	],
 	"vars": {
-		"STORE_MODE": "preview",
+		"STORE_MODE": "live",
 		"SITE_URL": "https://bluekoibotanicals.com",
-		"SQUARE_ENVIRONMENT": "sandbox",
+		"SQUARE_ENVIRONMENT": "production",
 		"SQUARE_API_VERSION": "2026-09-16",
-		"SQUARE_APPLICATION_ID": "sandbox-sq0idb-7v3qfzTdMDxQM3USbIqj-w",
-		"SQUARE_LOCATION_ID": "LG2FGSESN4FV0",
+		"SQUARE_APPLICATION_ID": "sq0idp-kBUz06D2P7iLThT_GYYnmA",
+		"SQUARE_LOCATION_ID": "LBZYNM2ZZF9AN",
 		"EMAIL_FROM": "Blue Koi Botanicals <orders@bluekoibotanicals.com>",
-		"LIVE_LAUNCH_CONFIRMED": "false",
-		"SQUARE_WEBHOOK_URL": "https://bluekoibotanicals.com/api/webhooks/square",
-		"CUSTOMS_SIGNER": "Gwyn Porter"
+		"OWNER_EMAIL": "blue.koi.botanicals@gmail.com",
+		"LIVE_LAUNCH_CONFIRMED": "true",
+		"SQUARE_WEBHOOK_URL": "https://bluekoibotanicals.com/api/webhooks/square"
 	},
 	"triggers": {
 		"crons": [
-			"15 * * * *"
+			"*/5 * * * *"
 		]
 	}
 }
