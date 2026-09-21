@@ -1,4 +1,5 @@
-import {products, StoreError, fail, money, parcels, uuid, clean, checkDestination} from './core.mjs';
+import {flattenVariations, variationCandidates} from './catalog-matching.mjs';
+import {products, store, StoreError, fail, money, parcels, uuid, clean, checkDestination} from './core.mjs';
 const transport = env => env.FETCH || fetch;
 export async function square(env, path, body, method = body ? 'POST' : 'GET') {
   const host = env.SQUARE_ENVIRONMENT === 'production' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
@@ -13,24 +14,54 @@ export async function square(env, path, body, method = body ? 'POST' : 'GET') {
   }
   return data;
 }
+// Resolve named sizes in the active Square environment. The old standalone Jasmine ID
+// is intentionally never a fallback. Cache only a complete, unambiguous catalog response.
+const variationCache = new Map();
+async function mappedProducts(env) {
+  if (!products.some(p=>p.square_variation_name)) return products;
+  const key = [env.SQUARE_ENVIRONMENT, env.SQUARE_LOCATION_ID, env.SQUARE_ACCESS_TOKEN].join(':');
+  let cached = variationCache.get(key);
+  if (!cached || cached.expires < Date.now() || env.FETCH) {
+    const items = []; let cursor;
+    do {
+      const data = await square(env, '/catalog/list?types=ITEM' + (cursor ? '&cursor='+encodeURIComponent(cursor) : ''));
+      items.push(...(data.objects || [])); cursor = data.cursor;
+    } while (cursor);
+    cached = {variations:flattenVariations(items), expires:Date.now()+60000};
+    if (variationCache.size >= 10) variationCache.clear();
+    variationCache.set(key,cached);
+  }
+  return products.map(p=>{
+    if (!p.square_variation_name) return p;
+    const matches = variationCandidates(p,cached.variations);
+    return {...p, square_variation_id:matches.length===1 ? matches[0].variation_id : null};
+  });
+}
 export async function catalog(env) {
   if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID || env.STORE_MODE === 'preview') return products.map(p => ({...p,stock:p.stock_snapshot}));
-  const ids = products.map(p => p.square_variation_id).filter(Boolean);
+  const resolved = await mappedProducts(env);
+  const ids = resolved.map(p => p.square_variation_id).filter(Boolean);
   if (!ids.length) fail('The product catalog is being connected. Please contact us to order.',503,'CATALOG_SETUP');
   const [items, counts] = await Promise.all([
     square(env,'/catalog/batch-retrieve',{object_ids:ids,include_related_objects:true}),
     square(env,'/inventory/counts/batch-retrieve',{catalog_object_ids:ids,location_ids:[env.SQUARE_LOCATION_ID],states:['IN_STOCK']})
   ]);
   if (counts.cursor) fail('Inventory response is incomplete. Please try again shortly.',503);
-  return products.map(p => {
+  return resolved.map(p => {
     const v = items.objects?.find(v => v.id === p.square_variation_id);
     const d = v?.item_variation_data;
     const parent = items.related_objects?.find(x => x.id === d?.item_id);
     const location = d?.location_overrides?.find(x => x.location_id === env.SQUARE_LOCATION_ID);
     const price = location?.price_money || d?.price_money;
     const count = counts.counts?.find(x => x.catalog_object_id === p.square_variation_id);
+    const tracked = (location?.track_inventory ?? d?.track_inventory) === true;
+    const soldOut = location?.sold_out === true && (!location.sold_out_valid_until || !(Date.parse(location.sold_out_valid_until) < Date.now()));
+    // Manually available body butters may not track a numeric count in Square.
+    // Preserve the existing tracked-inventory requirement for other collections.
+    const manualAvailability = p.category === 'body-butters' && !tracked;
+    const stock = soldOut ? 0 : tracked ? Math.max(0,Math.floor(Number(count?.quantity || 0))) : manualAvailability ? store.max_items_per_order : 0;
     const present = v?.present_at_all_locations !== false || v?.present_at_location_ids?.includes(env.SQUARE_LOCATION_ID);
-    return {...p,price_cents:Number(price?.amount || p.price_cents), stock:Math.max(0,Math.floor(Number(count?.quantity || 0))), online_enabled:p.online_enabled && !!d && !v?.is_deleted && !parent?.is_deleted && present && !v?.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID) && (location?.track_inventory ?? d.track_inventory) === true && price?.currency === 'USD' && Number(price.amount)>0};
+    return {...p,price_cents:Number(price?.amount || p.price_cents), stock, inventory_tracked:tracked, online_enabled:p.online_enabled && !!d && !v?.is_deleted && !parent?.is_deleted && present && !v?.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID) && (tracked || manualAvailability) && price?.currency === 'USD' && Number(price.amount)>0};
   });
 }
 export async function shipping(env, lines, a) {

@@ -1,7 +1,7 @@
 # Configuration and operations
 
 ## Production update
-Follow UPDATE.md. Do not create a new database or rerun catalog mapping merely to install this update. Production variation IDs, photos, prices, database ID, live mode, and launch confirmation are preserved.
+Follow UPDATE.md. Do not create a new database or rerun catalog mapping merely to install this update. See BODY-BUTTER-UPDATE.md for the size-variation changes. Non-body-butter production IDs, database ID, live mode, and launch confirmation are preserved.
 
 Non-secret wrangler.jsonc variables: STORE_MODE, SITE_URL, SQUARE_ENVIRONMENT, SQUARE_API_VERSION, SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID, EMAIL_FROM, OWNER_EMAIL, LIVE_LAUNCH_CONFIRMED, SQUARE_WEBHOOK_URL.
 
@@ -29,7 +29,7 @@ Processing orders retain stock reservations. Reconciliation checks the original 
 
 Older uncertain payments remain pending for manual review. Admin's Cancel unpaid order checks Square, requires confirmed cancellation with no payment, and only then releases stock. Paid or unverifiable orders are refused. Never delete pending records simply to charge again.
 
-Square provides current prices and tracked inventory. Unmapped/untracked variations are unavailable. Local reservations protect concurrent website orders; simultaneous POS activity still needs monitoring.
+Square provides current prices and tracked inventory. Missing or ambiguous size mappings are unavailable. Body butters without numeric tracking respect Square’s manual sold-out status; other collections retain their tracked-inventory requirement. Local reservations protect concurrent website orders; simultaneous POS activity still needs monitoring.
 
 When changing a product price, update the matching Square variation and `content/products.json` together, then rebuild and deploy. The static product pages read the JSON file, while live checkout reads Square's current price. The four 4 fl oz body oils are configured at $18.00 in this source.
 

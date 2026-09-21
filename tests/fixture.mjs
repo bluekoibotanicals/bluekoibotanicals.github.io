@@ -14,6 +14,7 @@ export function fixture(){
   function orderTotals(order){const subtotal=order.line_items.reduce((n,p)=>n+p.base_price_money.amount*Number(p.quantity),0),discount=order.discounts?.reduce((n,p)=>n+p.amount_money.amount,0)||0,tax=order.taxes?.length?Math.round((subtotal-discount)*0.053):0,shipping=order.service_charges?.reduce((n,p)=>n+p.amount_money.amount,0)||0;return {...order,total_money:{amount:subtotal-discount+tax+shipping,currency:'USD'},total_tax_money:{amount:tax,currency:'USD'},total_discount_money:{amount:discount,currency:'USD'}};}
   env.FETCH=async(url,options={})=>{
     const path=new URL(url).pathname,b=options.body?JSON.parse(options.body):{};
+    if(path==='/v2/catalog/list')return response({objects:products.filter(p=>p.square_variation_name).map(p=>({item_data:{name:p.square_name,variations:[{id:p.square_variation_id,item_variation_data:{name:p.square_variation_name,track_inventory:true,price_money:{amount:p.price_cents,currency:'USD'}}}]}}))});
     if(path==='/v2/catalog/batch-retrieve'){state.catalogCalls++;return response({objects:products.map(p=>({id:p.square_variation_id,item_variation_data:{track_inventory:true,price_money:{amount:state.prices[p.slug] || p.price_cents,currency:'USD'}}}))});}
     if(path==='/v2/inventory/counts/batch-retrieve')return response({counts:products.map(p=>({catalog_object_id:p.square_variation_id,quantity:String(state.stock[p.slug] ?? p.stock_snapshot)}))});
     if(path==='/shipments/'){state.shippingCalls++;state.lastShipment=b;

@@ -66,7 +66,7 @@ export function promotionalRates(rates, freeShipping = false) {
   const cheapest=rates.reduce((best,r)=>r.amount<best.amount?r:best,rates[0]);
   return rates.map(r=>r.id===cheapest.id?{...r,carrier_amount:r.amount,amount:0,free_shipping:true}:r);
 }
-export function publicProduct(p) { return {slug:p.slug,name:p.name,display_size:p.display_size,price_cents:p.price_cents,stock:p.stock,online_enabled:p.online_enabled,cbd:p.cbd}; }
+export function publicProduct(p) { return {slug:p.slug,name:p.name,display_size:p.display_size,price_cents:p.price_cents,stock:p.stock,inventory_tracked:p.inventory_tracked,online_enabled:p.online_enabled,cbd:p.cbd,parent_slug:p.parent_slug,jar_capacity_oz:p.jar_capacity_oz,image:`assets/photos/${p.photo_slug || p.slug}.jpeg`}; }
 export function ready(env) {
   const mode = env.STORE_MODE || 'preview';
   const basic = ['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON'].every(k => Boolean(env[k]));

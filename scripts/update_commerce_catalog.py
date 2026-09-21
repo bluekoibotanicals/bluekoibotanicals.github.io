@@ -4,6 +4,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 path = ROOT / 'content/products.json'
 products = json.loads(path.read_text(encoding='utf-8'))
+if any(p.get('parent_slug') for p in products):
+    raise SystemExit('This historical import is retired for the size-variation catalog. Edit content/products.json instead.')
 by = {p['slug']: p for p in products}
 if 'jasmine-whipped-body-butter-4oz' not in by:
     p = dict(by['jasmine-whipped-body-butter'])

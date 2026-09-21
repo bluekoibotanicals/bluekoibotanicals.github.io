@@ -3,3 +3,18 @@
 #shipping-promotion p{margin:8px 0}#use-shipping-code{margin-top:14px;font-size:.875rem;padding:10px 18px;min-height:44px}#past-invitation-products{border:1px solid var(--line);padding:16px 20px;margin:0 0 20px;min-width:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px 24px}#past-invitation-products legend{padding:0 8px;font-size:.9375rem}#past-invitation-products .checkbox{margin:0;align-items:flex-start}#past-invitation-products small{display:block;color:var(--muted)}#past-invitation-form .checkbox input{flex:0 0 20px}#past-invitation-list .admin-card{overflow-wrap:anywhere}#past-invitation-message:not(:empty){margin-top:18px}
 @media(max-width:820px){.commerce-layout{gap:30px;grid-template-columns:1fr 1fr}.order-summary{padding:24px;top:104px}.form-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.commerce-layout{grid-template-columns:1fr;padding-bottom:50px}.order-summary{position:static;grid-row:1}.commerce-layout:has(#cart-items) .order-summary{grid-row:auto}.form-grid{grid-template-columns:1fr 1fr;gap:0 14px}.field{font-size:.8125rem}.form-grid .field:has([name$="street1"]),.form-grid .field:has([name$="street2"]),.form-grid .field:has([name$="email"]),.form-grid .field:has([name$="phone"]){grid-column:1/-1}.rate-option{padding:15px;gap:10px}.rate-option strong{font-size:.875rem}.notice{padding:16px}.section-bottom{padding-bottom:50px}}
+
+/* Capacity options stay visible even when one Square variation is sold out. */
+.size-selector{border:0;padding:0;margin:1.5rem 0 .6rem;min-width:0}
+.size-selector legend{font-weight:600;margin-bottom:.7rem}
+.size-options{display:flex;gap:.75rem;flex-wrap:wrap}
+.size-option{flex:1;min-width:120px;cursor:pointer;position:relative}
+.size-option input{position:absolute;opacity:0;width:1px;height:1px}
+.size-option>span{display:flex;flex-direction:column;gap:.3rem;border:1px solid #c6c7bf;border-radius:8px;padding:.8rem 1rem;height:100%;box-sizing:border-box}
+.size-option input:checked+span{border:2px solid #173d52;padding:calc(.8rem - 1px) calc(1rem - 1px);background:#edf2f0}
+.size-option input:focus-visible+span{outline:3px solid #ab8141;outline-offset:3px}
+.size-option small{color:#6a5247;font-size:.75rem}
+.size-upgrade{color:#173d52;font-weight:600;margin:.65rem 0}
+.cart-product-image{width:72px;height:90px;object-fit:contain;border-radius:5px;float:left;margin-right:1rem}
+.cart-line:has(.cart-product-image){grid-template-columns:72px 1fr auto auto auto}
+@media(max-width:640px){.cart-line:has(.cart-product-image){grid-template-columns:72px 1fr auto}.cart-line:has(.cart-product-image) .field{grid-column:2}.cart-line:has(.cart-product-image) .remove{grid-column:3}}

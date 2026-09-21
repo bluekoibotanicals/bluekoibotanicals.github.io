@@ -230,8 +230,11 @@ async function route(req,env,ctx,session) {
   }
   if (p==='/api/reviews' && req.method==='GET') {
     const slug=u.searchParams.get('product'); if (!products.some(p=>p.slug===slug)) fail('Product not found.',404);
-    const reviews=await all(env,'SELECT rating,author,body,created_at FROM all_product_reviews WHERE slug=? AND status=\'published\' ORDER BY created_at DESC LIMIT 100',slug);
-    const stats=await first(env,'SELECT COUNT(*) AS count,AVG(rating) AS average FROM all_product_reviews WHERE slug=? AND status=\'published\'',slug);
+    const product=products.find(p=>p.slug===slug), parent=product.parent_slug || slug;
+    const slugs=products.filter(p=>(p.parent_slug || p.slug)===parent).map(p=>p.slug);
+    const placeholders=slugs.map(()=>'?').join(',');
+    const reviews=await all(env,`SELECT rating,author,body,created_at FROM all_product_reviews WHERE slug IN (${placeholders}) AND status='published' ORDER BY created_at DESC LIMIT 100`,...slugs);
+    const stats=await first(env,`SELECT COUNT(*) AS count,AVG(rating) AS average FROM all_product_reviews WHERE slug IN (${placeholders}) AND status='published'`,...slugs);
     return json({reviews,...stats});
   }
   if (p==='/api/review-invitation' && req.method==='POST') {
@@ -257,7 +260,7 @@ async function route(req,env,ctx,session) {
       if(b.action==='create') {await limit(env,req,'past-invitations',30);return json(await createPastInvitation(env,b),201);}
       return json(await pastInvitationAction(env,b));
     }
-    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:products.filter(p=>p.square_variation_id).length,total:products.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
+    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:(await catalog(env)).filter(p=>p.square_variation_id).length,total:products.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
     if (p==='/api/admin/orders' && req.method==='GET') return json({orders:(await all(env,'SELECT * FROM orders ORDER BY created_at DESC LIMIT 100')).map(o=>({...publicOrder(o),created_at:o.created_at,fulfilled_at:o.fulfilled_at,square_order_id:o.square_order_id,payment_id:o.payment_id,recovery_note:o.recovery_note,email_sent:!!o.email_sent,owner_email_sent:!!o.owner_email_sent,address:JSON.parse(o.data).address,parcels:JSON.parse(o.data).parcels}))});
     if (p==='/api/admin/discount-codes' && req.method==='GET') return json({discount_codes:await all(env,'SELECT code,kind,value,minimum_subtotal_cents,active,created_at,updated_at FROM discount_codes ORDER BY active DESC, created_at DESC')});
     if (p==='/api/admin/discount-codes' && req.method==='POST') {

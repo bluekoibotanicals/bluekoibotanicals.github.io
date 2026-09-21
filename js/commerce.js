@@ -24,29 +24,69 @@ export const catalogPromise=(async()=>{
   }
 })();
 export const configPromise=api('api/config').catch(()=>({mode:'preview',checkout_ready:false}));
+function stockMessage(p,data) {
+  return !p.online_enabled?'Currently unavailable':!p.stock?'Sold out':data.offline?'Availability confirmed at checkout':data.preview?'':p.inventory_tracked===false?'Available':p.stock<6?`Only ${p.stock} available`:'In stock';
+}
+function updateBuyButton(button,p) {
+  button.dataset.addProduct=p.slug;
+  button.disabled=!p.stock || !p.online_enabled;
+  button.textContent=!p.online_enabled?'Unavailable':!p.stock?'Sold out':'Add to bag';
+}
 async function productsUI(){
   const data=await catalogPromise;
+  const bySlug=new Map(data.products.map(p=>[p.slug,p]));
+  const detail=$('[data-product-detail]');
   for(const p of data.products){
     document.querySelectorAll(`[data-product-price="${p.slug}"]`).forEach(el=>el.textContent=currency(p.price_cents));
-    document.querySelectorAll(`[data-stock="${p.slug}"]`).forEach(el=>{el.textContent=!p.stock?'Sold out':!p.online_enabled?'Currently unavailable':data.offline?'Availability confirmed at checkout':data.preview?'':p.stock<6?`Only ${p.stock} available`:'In stock';el.classList.toggle('sold-out',!p.stock || !p.online_enabled);});
-    document.querySelectorAll(`[data-add-product="${p.slug}"]`).forEach(button=>{
-      button.disabled=!p.stock || !p.online_enabled;button.textContent=!p.stock?'Sold out':!p.online_enabled?'Unavailable':'Add to bag';
-      button.addEventListener('click',()=>{
-        const quantity=Number($('#product-quantity')?.value || 1),cart=getCart();
-        if(!Number.isInteger(quantity) || quantity<1 || quantity>12)return toast('Choose a quantity between 1 and 12.');
-        const existing=cart.find(x=>x.slug===p.slug);
-        if((existing?.quantity || 0)+quantity>p.stock)return toast(`Only ${p.stock} available.`);
-        if(cart.reduce((n,p)=>n+p.quantity,0)+quantity>12)return toast('Please contact us for orders larger than 12 items.');
-        if(existing)existing.quantity+=quantity;else cart.push({slug:p.slug,quantity});
-        try{saveCart(cart);toast('Added to your bag.');}catch(error){toast(error.message);}
-      });
+    document.querySelectorAll(`[data-stock="${p.slug}"]`).forEach(el=>{
+      const siblings=p.parent_slug && !el.closest('[data-product-detail]') ? data.products.filter(x=>x.parent_slug===p.parent_slug) : [p];
+      const available=siblings.find(x=>x.online_enabled && x.stock>0);
+      el.textContent=stockMessage(available || p,data);el.classList.toggle('sold-out',!available);
     });
+    document.querySelectorAll(`[data-add-product="${p.slug}"]`).forEach(button=>updateBuyButton(button,p));
   }
+  if(detail && $('.size-selector',detail)){
+    const parent=detail.dataset.productDetail;
+    const radios=[...detail.querySelectorAll('[data-size-slug]')];
+    for(const radio of radios){
+      const p=bySlug.get(radio.dataset.sizeSlug);if(!p)continue;
+      $(`[data-option-price="${p.slug}"]`,detail).textContent=currency(p.price_cents);
+      $(`[data-option-stock="${p.slug}"]`,detail).textContent=p.online_enabled && p.stock>0?'':stockMessage(p,data);
+    }
+    const large=bySlug.get(parent),small=bySlug.get(parent+'-4oz');
+    const upgrade=$('[data-size-upgrade]',detail),difference=large.price_cents-small.price_cents;
+    upgrade.textContent=difference>0?`Double the butter for ${currency(difference).replace(/\.00$/,'')} more`:'Double the butter in the 8 oz jar';
+    const select=(radio,updateURL=true)=>{
+      const p=bySlug.get(radio.dataset.sizeSlug);if(!p)return;
+      radio.checked=true;
+      const price=$('[data-product-price]',detail);price.dataset.productPrice=p.slug;price.textContent=currency(p.price_cents);
+      $('[data-selected-size]',detail).textContent=p.display_size;
+      const img=$('.detail-image img',detail);img.src=pageURL(p.image);img.alt=`${p.name} in a ${p.jar_capacity_oz} oz capacity jar`;
+      img.width=p.jar_capacity_oz===4?1086:1122;img.height=p.jar_capacity_oz===4?1448:1402;
+      updateBuyButton($('[data-add-product]',detail),p);
+      const stock=$('[data-stock]',detail);stock.dataset.stock=p.slug;stock.textContent=stockMessage(p,data);stock.classList.toggle('sold-out',!p.stock || !p.online_enabled);
+      const quantity=$('#product-quantity');quantity.max=Math.max(1,Math.min(12,p.stock));quantity.value=Math.min(Number(quantity.value)||1,Number(quantity.max));
+      if(updateURL){const url=new URL(location.href);if(p.jar_capacity_oz===4)url.searchParams.set('size','4');else url.searchParams.delete('size');history.replaceState(null,'',url);}
+    };
+    radios.forEach(r=>r.addEventListener('change',()=>select(r)));
+    select(radios.find(r=>r.value===(new URL(location.href).searchParams.get('size')==='4'?'4':'8')),false);
+  }
+  document.querySelectorAll('[data-add-product]').forEach(button=>button.addEventListener('click',()=>{
+    const p=bySlug.get(button.dataset.addProduct);if(!p || button.disabled)return;
+    const quantity=Number($('#product-quantity')?.value || 1),cart=getCart();
+    if(!Number.isInteger(quantity) || quantity<1 || quantity>12)return toast('Choose a quantity between 1 and 12.');
+    const existing=cart.find(x=>x.slug===p.slug);
+    if((existing?.quantity || 0)+quantity>p.stock)return toast(`Only ${p.stock} available.`);
+    if(cart.reduce((n,p)=>n+p.quantity,0)+quantity>12)return toast('Please contact us for orders larger than 12 items.');
+    if(existing)existing.quantity+=quantity;else cart.push({slug:p.slug,quantity});
+    try{saveCart(cart);toast('Added to your bag.');}catch(error){toast(error.message);}
+  }));
   if($('#cart-items'))renderCart(data);
 }
+
 function renderCart(data){
   const cart=getCart(),items=cart.map(l=>({...data.products.find(p=>p.slug===l.slug),...l})).filter(p=>p.name),valid=items.length===cart.length && items.every(p=>p.online_enabled && p.stock>=p.quantity);
-  $('#cart-items').innerHTML=items.length ? items.map(p=>`<article class="cart-line"><div><h3><a href="${pageURL(`products/${p.slug}.html`)}">${esc(p.name)}</a></h3><p class="small muted">${esc(p.display_size)}</p>${p.stock<p.quantity || !p.online_enabled?'<p class="stock-note sold-out">Update or remove this unavailable quantity.</p>':''}</div><span class="cart-price">${currency(p.price_cents*p.quantity)}</span><label class="field">Quantity<input type="number" data-cart-quantity="${p.slug}" value="${p.quantity}" min="1" max="${Math.min(12,p.stock)||1}" step="1"></label><button class="remove" type="button" data-cart-remove="${p.slug}">Remove</button></article>`).join('') : `<div class="empty-bag"><h2>A little something for you?</h2><p>Your bag is empty. Explore our small-batch body care.</p><a class="button" href="${pageURL('products.html')}">Browse the collection</a></div>`;
+  $('#cart-items').innerHTML=items.length ? items.map(p=>`<article class="cart-line">${p.image?`<img class="cart-product-image" src="${pageURL(p.image)}" alt="${esc(p.name+' '+p.display_size)}" width="72" height="90">`:''}<div><h3><a href="${pageURL(`products/${p.parent_slug || p.slug}.html${p.jar_capacity_oz===4?'?size=4':''}`)}">${esc(p.name)}</a></h3><p class="small muted">${esc(p.display_size)}</p>${p.stock<p.quantity || !p.online_enabled?'<p class="stock-note sold-out">Update or remove this unavailable quantity.</p>':''}</div><span class="cart-price">${currency(p.price_cents*p.quantity)}</span><label class="field">Quantity<input type="number" data-cart-quantity="${p.slug}" value="${p.quantity}" min="1" max="${Math.min(12,p.stock)||1}" step="1"></label><button class="remove" type="button" data-cart-remove="${p.slug}">Remove</button></article>`).join('') : `<div class="empty-bag"><h2>A little something for you?</h2><p>Your bag is empty. Explore our small-batch body care.</p><a class="button" href="${pageURL('products.html')}">Browse the collection</a></div>`;
   const subtotal=items.reduce((n,p)=>n+p.price_cents*p.quantity,0);$('#cart-summary').innerHTML=totalsHTML({subtotal},false);
   $('#checkout-link').hidden=!items.length || !valid;
   document.querySelectorAll('[data-cart-quantity]').forEach(el=>el.addEventListener('change',()=>{const c=getCart();const p=c.find(p=>p.slug===el.dataset.cartQuantity);const qty=Number(el.value);if(Number.isInteger(qty)&&qty>=1&&qty<=12 && c.reduce((n,x)=>n+(x===p?qty:x.quantity),0)<=12){p.quantity=qty;saveCart(c);}renderCart(data);}));

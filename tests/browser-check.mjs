@@ -30,14 +30,46 @@ try{
   assert.equal(await page.locator('img[src$="gwyn.jpg"]').count(),0);
   assert.match(await page.locator('main').innerText(),/Send us a note/);
   await page.setViewportSize({width:1440,height:1000});
+  // Each scent has a shared page; changing capacity must change image, price, and cart key.
+  for(const scent of ['lavender','cedarwood-vanilla','eucalyptus','jasmine','unscented']){
+    const slug=scent+'-whipped-body-butter';
+    await page.goto(base+'/products/'+slug+'.html');
+    await page.waitForFunction(()=>document.querySelector('.product-spec .price')?.textContent==='$28.00');
+    assert.equal(await page.locator('[name="jar-size"]:checked').inputValue(),'8');
+    assert.match(await page.locator('.product-spec .price').innerText(),/28\.00/);
+    const largeImage=await page.locator('.detail-image img').getAttribute('src');
+    await page.locator('.size-option').filter({has:page.locator('input[value="4"]')}).click();
+    assert.equal(await page.locator('[name="jar-size"]:checked').inputValue(),'4');
+    assert.match(await page.locator('.product-spec .price').innerText(),/20\.00/);
+    assert.notEqual(await page.locator('.detail-image img').getAttribute('src'),largeImage);
+    assert.match(await page.locator('.detail-image img').getAttribute('src'),new RegExp(slug+'-4oz\\.jpeg'));
+    assert.equal(await page.locator('[data-add-product]').getAttribute('data-add-product'),slug+'-4oz');
+    await page.waitForFunction(()=>{const img=document.querySelector('.detail-image img');return img.complete && img.naturalWidth>0;});
+    assert.match(await page.locator('.detail-copy').innerText(),/jar capacity, not net product weight/);
+  }
+  await page.goto(base+'/products/body-butters.html');
+  assert.equal(await page.locator('.product-card').count(),5);
+  await page.goto(base+'/products/jasmine-whipped-body-butter.html');
+  await page.getByRole('button',{name:'Add to bag'}).click();
+  await page.locator('.size-option').filter({has:page.locator('input[value="4"]')}).click();
+  await page.getByRole('button',{name:'Add to bag'}).click();
+  await page.goto(base+'/cart.html');
+  assert.equal(await page.locator('.cart-line').count(),2);
+  assert.match(await page.locator('#cart-summary').innerText(),/48\.00/);
+  await page.screenshot({path:'test-results/both-sizes-cart-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  await page.screenshot({path:'test-results/both-sizes-cart-mobile.png',fullPage:true});
+  await page.evaluate(()=>localStorage.removeItem('bk_cart'));
+  await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/products/jasmine-whipped-body-butter-4oz.html');
   assert.doesNotMatch(await page.locator('body').innerText(),/�|â€|Â©|Â·/);
   assert.match(await page.locator('footer').innerText(),/©/);
   await page.getByRole('button',{name:'Add to bag'}).waitFor();await page.getByRole('button',{name:'Add to bag'}).click();
   await page.goto(base+'/cart.html');await page.getByRole('heading',{name:'Jasmine Whipped Body Butter'}).waitFor();
-  assert.match(await page.locator('#cart-summary').innerText(),/18\.00/);
+  assert.match(await page.locator('#cart-summary').innerText(),/20\.00/);
   await page.screenshot({path:'test-results/cart-desktop.png',fullPage:true});
-  await page.goto(base+'/checkout.html');await page.locator('#checkout-mode').waitFor();assert.match(await page.locator('#checkout-mode').innerText(),/being prepared/);assert.equal(await page.locator('#get-rates').isDisabled(),true);
+  await page.goto(base+'/checkout.html');await page.waitForFunction(()=>document.querySelector('#checkout-mode')?.textContent.includes('being prepared'));assert.match(await page.locator('#checkout-mode').innerText(),/being prepared/);assert.equal(await page.locator('#get-rates').isDisabled(),true);
   await page.setViewportSize({width:390,height:844});await page.goto(base+'/products/jasmine-whipped-body-butter-4oz.html');await page.getByRole('button',{name:'Add to bag'}).waitFor();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'test-results/product-mobile.png',fullPage:true});
   await page.goto(base+'/products/eucalyptus-whipped-body-butter.html');await page.getByRole('button',{name:'Sold out'}).waitFor();assert.equal(await page.getByRole('button',{name:'Sold out'}).isDisabled(),true);
