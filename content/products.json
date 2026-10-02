@@ -20,8 +20,8 @@
     "warning": "For external use only. Do not ingest. Avoid contact with eyes. Do not use on broken or irritated skin. Keep out of reach of children. Discontinue use if irritation occurs.",
     "category": "cbd-salves",
     "display_size": "4 oz · 2,000 mg CBD",
-    "description": "The same cooling balm as our 2 oz salve, in a larger jar. Made with coconut oil, shea butter, beeswax, and CBD isolate.",
-    "body": "A good choice if you reach for your salve often. Both sizes contain the same amount of CBD per ounce.",
+    "description": "More of the cooling ritual you love. Our generous 4 oz salve brings together 2,000 mg of CBD isolate, nourishing coconut oil and shea butter, and a refreshing blend of menthol, eucalyptus, and camphor.",
+    "body": "This is the jar to keep within reach when salve has become part of your routine. Beeswax gives the balm its firm texture; the warmth of your hands turns a small amount into a smooth layer that is satisfying to massage into skin. You get twice the salve and twice the total CBD of our 2 oz jar, at the same CBD concentration—and save $6 compared with buying two small jars.",
     "price_cents": 5800,
     "stock_snapshot": 11,
     "weight_lb": 0.4375,
@@ -31,7 +31,12 @@
     "square_variation_id": "FVKE6CBCYDFQDCLDHNQPHR5T",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "2,000 mg CBD isolate in a generous 4 oz jar",
+      "Same formula and CBD concentration as the 2 oz size",
+      "Twice the salve for $6 less than two small jars"
+    ]
   },
   {
     "slug": "cbd-salve",
@@ -54,8 +59,8 @@
     "warning": "For external use only. Do not ingest. Avoid contact with eyes. Do not use on broken or irritated skin. Keep out of reach of children. Discontinue use if irritation occurs.",
     "category": "cbd-salves",
     "display_size": "2 oz · 1,000 mg CBD",
-    "description": "A firm balm with coconut oil, shea butter, and beeswax. Menthol, eucalyptus, and camphor give it a cooling feel.",
-    "body": "A small jar that fits easily into a bag. Warm a little between your fingers, then massage it into clean, dry skin.",
+    "description": "A cooling moment, wherever the day takes you. Our rich, pocket-sized salve pairs 1,000 mg of CBD isolate with coconut oil, shea butter, and beeswax, finished with the crisp feel of menthol, eucalyptus, and camphor.",
+    "body": "Warm a little between your fingertips and feel the firm balm soften into a smooth, nourishing layer. The rich texture gives you time to massage it into dry skin, making an everyday application feel like a moment of care. Keep the 2 oz jar in your gym bag, at your desk, or beside the sofa for whenever you want that refreshing finish.",
     "price_cents": 3200,
     "stock_snapshot": 83,
     "weight_lb": 0.296875,
@@ -63,6 +68,52 @@
     "cbd": true,
     "square_name": "CBD Salve - 2.0oz 1000 mg CBD",
     "square_variation_id": "YINUA3TXYRRSEOT7GR444PSJ",
+    "customs_tariff_number": "",
+    "origin_country": "US",
+    "online_enabled": true,
+    "highlights": [
+      "1,000 mg CBD isolate in a compact 2 oz jar",
+      "Rich balm texture with a cooling finish",
+      "Coconut oil and shea butter to soften dry skin"
+    ]
+  },
+  {
+    "slug": "cbd-roll-on",
+    "name": "CBD Roll-On",
+    "meta": "Topical Oil · Cooling menthol, eucalyptus, and lavender",
+    "size": "1,000 mg CBD · Net Contents 10 mL",
+    "display_size": "10 mL · 1,000 mg CBD",
+    "price": "$26",
+    "price_cents": 2600,
+    "category": "cbd-roll-ons",
+    "description": "Your cooling ritual, ready to roll. This pocket-sized blend delivers 1,000 mg of CBD isolate in silky MCT and jojoba oils, with refreshing menthol and a light eucalyptus-lavender scent.",
+    "body": "Glide the roller directly over clean, dry skin for a smooth, targeted application without dipping into a jar. MCT and jojoba oils give the formula its easy slip, while bisabolol and vitamin E help condition the skin. Menthol adds a cooling sensation, balanced by the fresh herbal scent of eucalyptus and lavender essential oils. Tuck the 10 mL bottle into your everyday bag or keep it beside your desk for a small moment of care wherever the day takes you.",
+    "highlights": [
+      "1,000 mg CBD isolate in a portable 10 mL bottle",
+      "Roll-on application with smooth MCT and jojoba oils",
+      "Cooling menthol with eucalyptus and lavender"
+    ],
+    "ingredients": [
+      "MCT Oil",
+      "CBD Isolate (Cannabidiol)",
+      "Jojoba Oil",
+      "Menthol",
+      "Bisabolol",
+      "Vitamin E",
+      "Eucalyptus Essential Oil",
+      "Lavender Essential Oil"
+    ],
+    "use": "Roll a small amount onto clean, dry skin and gently massage in if desired. Begin with a small area to check skin tolerance. Replace the cap after use.",
+    "storage": "Store upright in a cool, dry place, away from heat and direct sunlight.",
+    "warning": "For external use only. Not intended for human consumption. Avoid contact with eyes and mucous membranes. Do not use on broken or irritated skin. Keep out of reach of children. Discontinue use if irritation occurs.",
+    "photo_slug": "cbd-roll-on",
+    "stock_snapshot": 0,
+    "weight_lb": 0.0881849,
+    "package": "small",
+    "cbd": true,
+    "square_name": "CBD Roll-On",
+    "square_variation_id": null,
+    "square_match_by_name": true,
     "customs_tariff_number": "",
     "origin_country": "US",
     "online_enabled": true
@@ -88,8 +139,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-oils",
     "display_size": "4 fl oz",
-    "description": "Warm cedarwood and vanilla, with lavender, ylang ylang, and honey fragrance in the background.",
-    "body": "Our meadowfoam and jojoba oil blend spreads easily over damp skin. Start with a few drops and work it in with your hands.",
+    "description": "Warm woods, soft vanilla, and skin that feels beautifully cared for. Meadowfoam and jojoba oils glide over damp skin, leaving a soft sheen and a cozy scent with hints of lavender, ylang ylang, and honey fragrance.",
+    "body": "Turn the last minute of your shower routine into the part you look forward to. Start with a few drops, smooth them over damp arms and legs, and enjoy the way cedarwood grounds the sweeter vanilla notes. Vitamin E completes the blend. Choose this oil when you want your daily moisture to feel warm, comforting, and just a little indulgent.",
     "price_cents": 1800,
     "stock_snapshot": 4,
     "weight_lb": 0.49375,
@@ -99,7 +150,12 @@
     "square_variation_id": "3HMGFJ6O47H7OKG7QRJKMG4O",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Warm cedarwood and vanilla scent",
+      "Meadowfoam and jojoba oils with vitamin E",
+      "Smooth over damp skin for a soft, luminous sheen"
+    ]
   },
   {
     "slug": "cedarwood-vanilla-whipped-body-butter",
@@ -128,8 +184,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "8 oz jar capacity",
-    "description": "Cedarwood and vanilla give this whipped butter its warm scent, with lavender, ylang ylang, and honey fragrance blended in.",
-    "body": "A little goes a long way. Warm a small amount in your hands and massage into dry skin.",
+    "description": "Wrap dry skin in a little warmth. This rich whipped butter blends shea and cocoa butters with meadowfoam and jojoba oils, scented with cozy cedarwood and vanilla, soft florals, and a touch of honey fragrance.",
+    "body": "Scoop a little, warm it between your palms, and let the whipped texture soften as you massage it into skin. Cedarwood gives the fragrance a woodsy base, while vanilla, lavender, ylang ylang, and honey fragrance round it out. Give elbows, knees, and other dry spots a little extra attention. Arrowroot helps soften the oily feel, making this a satisfying finishing touch after your daily wash.",
     "price_cents": 2800,
     "stock_snapshot": 4,
     "weight_lb": 0.6825,
@@ -143,7 +199,12 @@
     "parent_slug": "cedarwood-vanilla-whipped-body-butter",
     "jar_capacity_oz": 8,
     "photo_slug": "cedarwood-vanilla-whipped-body-butter",
-    "square_variation_name": "8oz Cedarwood Vanilla Whipped Body Butter"
+    "square_variation_name": "8oz Cedarwood Vanilla Whipped Body Butter",
+    "highlights": [
+      "Warm, woodsy cedarwood and vanilla blend",
+      "Rich shea and cocoa butters with plant oils",
+      "Whipped texture; a small scoop goes a long way"
+    ]
   },
   {
     "slug": "eucalyptus-body-oil",
@@ -166,8 +227,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-oils",
     "display_size": "4 fl oz",
-    "description": "A fresh eucalyptus scent, rounded out with lavender, cedarwood, vanilla, and honey fragrance.",
-    "body": "Made with meadowfoam and jojoba oils. Massage a small amount onto damp skin after a shower or bath.",
+    "description": "Bring a fresh, spa-like finish to your shower routine. Crisp eucalyptus meets meadowfoam and jojoba oils, with lavender, cedarwood, vanilla, and honey fragrance adding a softer edge.",
+    "body": "A few drops spread smoothly over damp skin, making it easy to give your arms and legs a little extra attention. The scent opens fresh and herbal, then feels more rounded as the warm, sweet notes come through. Finished with vitamin E, this is an inviting choice for mornings when you want your body care to feel as fresh as your clean skin.",
     "price_cents": 1800,
     "stock_snapshot": 8,
     "weight_lb": 0.49375,
@@ -177,7 +238,12 @@
     "square_variation_id": "T5BMVA3DCJCM4QPKD4L47MXZ",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Fresh eucalyptus with warm, softly sweet notes",
+      "Meadowfoam and jojoba oils with vitamin E",
+      "An easy finishing step after a shower or bath"
+    ]
   },
   {
     "slug": "honey-lavender-lip-balm",
@@ -200,8 +266,8 @@
     "warning": "For external use only. Discontinue use if irritation occurs.",
     "category": "lip-balms",
     "display_size": "0.19 oz",
-    "description": "Lavender with a little sweetness from honey fragrance. Made with beeswax, cocoa butter, shea butter, and plant oils.",
-    "body": "A small tube to keep in your pocket or bag. Swipe on a light layer whenever your lips feel dry.",
+    "description": "A little sweetness for your everyday essentials. Soft lavender and honey fragrance make every swipe inviting, while beeswax, cocoa butter, shea butter, and plant oils leave dry lips feeling smooth and cared for.",
+    "body": "Keep one in your pocket, your work bag, or beside the bed for a quick touch of comfort. The buttery blend glides onto lips in a light layer, with meadowfoam and jojoba oils adding softness and beeswax giving the balm its protective feel. Choose Honey Lavender if you love a softly floral scent with a warm, sweet finish. The honey note comes from fragrance, rather than added honey.",
     "price_cents": 500,
     "stock_snapshot": 90,
     "weight_lb": 0.0228125,
@@ -211,7 +277,12 @@
     "square_variation_id": "OY5PRW3YEHGIX25EZW66MM7N",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Soft lavender with sweet honey fragrance",
+      "Cocoa and shea butters with meadowfoam and jojoba",
+      "An easy pocket-sized treat or gift add-on"
+    ]
   },
   {
     "slug": "jasmine-body-oil",
@@ -231,8 +302,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-oils",
     "display_size": "4 fl oz",
-    "description": "Jasmine and ylang ylang in a blend of meadowfoam and jojoba oils. Floral, smooth, and easy to spread.",
-    "body": "Use a few drops after a shower, while your skin is still damp. It leaves a light sheen and a soft floral scent.",
+    "description": "Soft skin with a little floral luxury. Jasmine and ylang ylang lend a lush, rounded scent to our silky blend of meadowfoam and jojoba oils, leaving skin with a delicate sheen.",
+    "body": "Massage a few drops over damp skin and take an extra moment with the fragrance: full, floral jasmine balanced by the rich softness of ylang ylang. The oil spreads easily, so you can start small and add just what your skin needs. With vitamin E to complete the blend, it is a lovely everyday indulgence—or a thoughtful gift for someone who always chooses florals.",
     "price_cents": 1800,
     "stock_snapshot": 20,
     "weight_lb": 0.49375,
@@ -242,7 +313,12 @@
     "square_variation_id": "QMI6WJ6FFCKDOUZI6SEEYYPO",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Lush jasmine and ylang ylang fragrance",
+      "Silky meadowfoam and jojoba oil base",
+      "A soft sheen for freshly bathed skin"
+    ]
   },
   {
     "slug": "jasmine-whipped-body-butter",
@@ -268,8 +344,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "8 oz jar capacity",
-    "description": "A rich whipped butter with jasmine and ylang ylang. Shea butter, cocoa butter, and plant oils help soften dry skin.",
-    "body": "Warm a small scoop between your hands before applying. Arrowroot powder helps soften the oily feel of the butters and oils.",
+    "description": "Rich moisture with a lush floral finish. Shea and cocoa butters are whipped with meadowfoam and jojoba oils, then scented with jasmine and ylang ylang for an everyday ritual that feels wonderfully indulgent.",
+    "body": "The airy scoop softens with the warmth of your hands into a rich layer of care for dry skin. Jasmine brings a full floral fragrance, with ylang ylang adding a smooth, rounded depth. Massage a small amount into arms, legs, and dry spots, taking a moment to enjoy the texture. Arrowroot helps soften the oily feel. Pair it with Jasmine Body Oil if you love having the same scent in two different textures.",
     "price_cents": 2800,
     "stock_snapshot": 11,
     "weight_lb": 0.6825,
@@ -283,7 +359,12 @@
     "parent_slug": "jasmine-whipped-body-butter",
     "jar_capacity_oz": 8,
     "photo_slug": "jasmine-whipped-body-butter",
-    "square_variation_name": "8oz Jasmine Whipped Body Butter"
+    "square_variation_name": "8oz Jasmine Whipped Body Butter",
+    "highlights": [
+      "Lush jasmine and ylang ylang fragrance",
+      "Shea and cocoa butters for rich skin conditioning",
+      "A whipped scoop that softens as you massage"
+    ]
   },
   {
     "slug": "lavender-body-oil",
@@ -304,8 +385,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-oils",
     "display_size": "4 fl oz",
-    "description": "Lavender with ylang ylang and a touch of honey fragrance. A soft floral scent in our meadowfoam and jojoba oil blend.",
-    "body": "Massage a little onto damp skin after a shower. The dropper makes it easy to start with a small amount and add more as needed.",
+    "description": "Make room for a softer end to the day. Lavender, ylang ylang, and a touch of honey fragrance meet meadowfoam and jojoba oils in a smooth body oil that leaves skin soft and lightly scented.",
+    "body": "Keep it by the shower and turn a familiar habit into something worth slowing down for. A few drops glide over damp skin, with herbal lavender softened by floral ylang ylang and a subtle sweetness. Vitamin E rounds out the blend. It is an easy choice for anyone who loves lavender with a little warmth and depth.",
     "price_cents": 1800,
     "stock_snapshot": 8,
     "weight_lb": 0.49375,
@@ -315,7 +396,12 @@
     "square_variation_id": "4NHQR6KCWQ2VE7YTR7OQCRUG",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Soft lavender with floral and honey-fragrance notes",
+      "Meadowfoam and jojoba oils with vitamin E",
+      "A simple after-shower ritual for soft-feeling skin"
+    ]
   },
   {
     "slug": "lavender-magnesium-spray",
@@ -337,8 +423,8 @@
     "warning": "For external use only. Avoid face, eyes, broken skin, and freshly shaved skin. May tingle. Discontinue use if irritation occurs.",
     "category": "magnesium-sprays",
     "display_size": "4 fl oz",
-    "description": "A magnesium body mist with lavender flower water and aloe. Lightly floral and simple to spray onto skin.",
-    "body": "Shake before use and start with a small amount. Follow the directions on your bottle, especially if your skin is sensitive.",
+    "description": "Give your evening routine a soft floral finish. This mineral-rich body mist combines magnesium chloride, lavender flower water, and aloe in an easy spray that makes a small moment of care feel special.",
+    "body": "Shake the bottle, start with a small amount, and massage gently into skin. Lavender flower water lends a delicate herbal-floral scent, while the water-based format offers a different feel from a rich butter or oil. Keep it with your evening essentials and enjoy a simple ritual that takes just a moment. Magnesium can tingle on skin; follow the care directions below and avoid freshly shaved areas.",
     "price_cents": 1900,
     "stock_snapshot": 90,
     "weight_lb": 0.56625,
@@ -348,7 +434,12 @@
     "square_variation_id": "AN3KI3HHN7V3YT4EK3KUOZZW",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Magnesium chloride with lavender flower water",
+      "Aloe in a water-based body mist",
+      "A softly floral addition to your evening routine"
+    ]
   },
   {
     "slug": "lavender-spearmint-lip-balm",
@@ -371,8 +462,8 @@
     "warning": "For external use only. Discontinue use if irritation occurs.",
     "category": "lip-balms",
     "display_size": "0.19 oz",
-    "description": "Herbal lavender and fresh spearmint in a beeswax balm with cocoa butter, shea butter, and plant oils.",
-    "body": "The minty option in our lip balm pair. Apply a light layer and reapply as needed.",
+    "description": "Fresh mint meets soft lavender in a balm you will want to keep close. Beeswax, cocoa butter, shea butter, and nourishing plant oils smooth over dry lips with a fresh, lightly cooling feel.",
+    "body": "A small swipe is all it takes to make this little tube part of your daily routine. Spearmint brings the freshness, lavender adds an herbal softness, and meadowfoam and jojoba oils give the buttery base a comfortable glide. Slip it into your pocket for a minty refresh on the go, or pair it with Honey Lavender to have a balm for each mood.",
     "price_cents": 500,
     "stock_snapshot": 113,
     "weight_lb": 0.0228125,
@@ -382,7 +473,12 @@
     "square_variation_id": "VZSKX4ER7PKYO5M32KM6GB44",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Herbal lavender and fresh spearmint",
+      "Buttery glide with a lightly cooling feel",
+      "Pocket-sized care for everyday dry lips"
+    ]
   },
   {
     "slug": "lavender-whipped-body-butter",
@@ -409,8 +505,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "8 oz jar capacity",
-    "description": "Rich shea and cocoa butters whipped with meadowfoam and jojoba oils. Scented with lavender, ylang ylang, and honey fragrance.",
-    "body": "Start with a small scoop and let it soften between your hands. Work it into dry areas, such as elbows, knees, and heels.",
+    "description": "End the day with soft skin and a familiar favorite. Rich shea and cocoa butters meet meadowfoam and jojoba oils in a whipped blend scented with lavender, ylang ylang, and a gentle hint of honey fragrance.",
+    "body": "Warm a small scoop in your palms and work it into the places that crave a little more moisture: hands, elbows, knees, and heels. The whipped texture gives way to a rich, buttery feel, while arrowroot helps soften the oily finish. Herbal lavender, rounded by floral and sweet notes, makes this an inviting addition to your evening routine. A little is plenty to start with.",
     "price_cents": 2800,
     "stock_snapshot": 6,
     "weight_lb": 0.6825,
@@ -424,7 +520,12 @@
     "parent_slug": "lavender-whipped-body-butter",
     "jar_capacity_oz": 8,
     "photo_slug": "lavender-whipped-body-butter",
-    "square_variation_name": "8oz Lavender Whipped Body Butter"
+    "square_variation_name": "8oz Lavender Whipped Body Butter",
+    "highlights": [
+      "Lavender softened by ylang ylang and honey fragrance",
+      "Rich shea and cocoa butters with meadowfoam and jojoba",
+      "A small scoop for hands and other dry spots"
+    ]
   },
   {
     "slug": "rose-magnesium-spray",
@@ -446,8 +547,8 @@
     "warning": "For external use only. Avoid face, eyes, broken skin, and freshly shaved skin. May tingle. Discontinue use if irritation occurs.",
     "category": "magnesium-sprays",
     "display_size": "4 fl oz",
-    "description": "Rose flower water, magnesium chloride, and aloe in an easy-to-use body mist. A gentle rose scent with a mineral feel.",
-    "body": "Shake before use and start with a small amount. Follow the directions on your bottle, especially if your skin is sensitive.",
+    "description": "A fresh floral moment for your daily routine. Rose flower water, magnesium chloride, and aloe come together in a water-based body mist with a delicate rose scent and a distinctive mineral feel.",
+    "body": "Choose Rose when you want your body care to feel light, fresh, and a little romantic. Shake well, mist a small amount onto the body, and massage into skin. The spray format makes it easy to add a quick moment of care without scooping a butter or pouring an oil. Magnesium can tingle, so begin with a small area and follow the care directions below.",
     "price_cents": 1900,
     "stock_snapshot": 47,
     "weight_lb": 0.56625,
@@ -457,7 +558,12 @@
     "square_variation_id": "2YXCPL3RGVGZOEJO3LISK24X",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true
+    "online_enabled": true,
+    "highlights": [
+      "Delicate rose flower water scent",
+      "Magnesium chloride and aloe",
+      "Easy spray application for a simple daily ritual"
+    ]
   },
   {
     "slug": "unscented-whipped-body-butter",
@@ -481,8 +587,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "8 oz jar capacity",
-    "description": "Our shea and cocoa butter blend without added fragrance or essential oils. You may notice the natural scent of the ingredients.",
-    "body": "Whipped with meadowfoam and jojoba oils for a rich texture. Start with a small amount, especially on warmer days.",
+    "description": "All the richness, with no added fragrance. Shea and cocoa butters are whipped with meadowfoam and jojoba oils to leave dry skin feeling soft, supple, and cared for.",
+    "body": "Choose this butter when you want the texture to be the star, or when you prefer your body care to leave room for your own favorite fragrance. There are no added essential oils or perfume; you may still notice the natural scent of the butters and oils. Warm a small scoop between your hands and massage into dry areas. Arrowroot helps soften the oily feel of this rich, concentrated blend.",
     "price_cents": 2800,
     "stock_snapshot": 0,
     "weight_lb": 0.6825,
@@ -496,7 +602,12 @@
     "parent_slug": "unscented-whipped-body-butter",
     "jar_capacity_oz": 8,
     "photo_slug": "unscented-whipped-body-butter",
-    "square_variation_name": "8oz Unscented Whipped Body Butter"
+    "square_variation_name": "8oz Unscented Whipped Body Butter",
+    "highlights": [
+      "No added fragrance or essential oils",
+      "Shea and cocoa butters with meadowfoam and jojoba",
+      "Rich, whipped care with the ingredients’ natural scent"
+    ]
   },
   {
     "slug": "eucalyptus-whipped-body-butter",
@@ -508,8 +619,8 @@
     "use": "Massage a small amount onto clean, dry skin.",
     "storage": "Store in a cool, dry place.",
     "warning": "For external use only.",
-    "description": "Eucalyptus whipped body butter in your choice of jar size.",
-    "body": "Choose a 4 oz or 8 oz jar. Contact us for the full ingredient list.",
+    "description": "A fresh-scented take on a rich daily ritual. Eucalyptus gives this whipped body butter an inviting herbal character, with a creamy texture made for taking a little extra time over dry skin.",
+    "body": "If you gravitate toward fresh, spa-like scents, make this your butter. Warm a small amount between your hands and massage it into clean, dry skin, paying attention to elbows and knees. Choose a 4 oz jar for a smaller everyday companion or an 8 oz jar to keep your favorite close for longer. Need to check an ingredient? Send us a note for the full formula before ordering.",
     "price": "$28",
     "price_cents": 2800,
     "stock_snapshot": 0,
@@ -525,7 +636,12 @@
     "size": "8 oz jar capacity",
     "parent_slug": "eucalyptus-whipped-body-butter",
     "jar_capacity_oz": 8,
-    "square_variation_name": "8oz Eucalyptus Body Butter"
+    "square_variation_name": "8oz Eucalyptus Body Butter",
+    "highlights": [
+      "Fresh eucalyptus scent",
+      "Rich whipped texture for dry skin",
+      "Choose a 4 oz or 8 oz jar"
+    ]
   },
   {
     "slug": "cedarwood-vanilla-whipped-body-butter-4oz",
@@ -554,8 +670,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "4 oz jar capacity",
-    "description": "Cedarwood and vanilla give this whipped butter its warm scent, with lavender, ylang ylang, and honey fragrance blended in.",
-    "body": "A little goes a long way. Warm a small amount in your hands and massage into dry skin.",
+    "description": "Wrap dry skin in a little warmth. This rich whipped butter blends shea and cocoa butters with meadowfoam and jojoba oils, scented with cozy cedarwood and vanilla, soft florals, and a touch of honey fragrance.",
+    "body": "Scoop a little, warm it between your palms, and let the whipped texture soften as you massage it into skin. Cedarwood gives the fragrance a woodsy base, while vanilla, lavender, ylang ylang, and honey fragrance round it out. Give elbows, knees, and other dry spots a little extra attention. Arrowroot helps soften the oily feel, making this a satisfying finishing touch after your daily wash.",
     "price_cents": 2000,
     "stock_snapshot": 0,
     "weight_lb": 0.3725,
@@ -569,7 +685,12 @@
     "parent_slug": "cedarwood-vanilla-whipped-body-butter",
     "jar_capacity_oz": 4,
     "photo_slug": "cedarwood-vanilla-whipped-body-butter-4oz",
-    "square_variation_name": "4oz Cedarwood Vanilla Whipped Body Butter"
+    "square_variation_name": "4oz Cedarwood Vanilla Whipped Body Butter",
+    "highlights": [
+      "Warm, woodsy cedarwood and vanilla blend",
+      "Rich shea and cocoa butters with plant oils",
+      "Whipped texture; a small scoop goes a long way"
+    ]
   },
   {
     "slug": "jasmine-whipped-body-butter-4oz",
@@ -595,8 +716,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "4 oz jar capacity",
-    "description": "A rich whipped butter with jasmine and ylang ylang. Shea butter, cocoa butter, and plant oils help soften dry skin.",
-    "body": "Warm a small scoop between your hands before applying. Arrowroot powder helps soften the oily feel of the butters and oils.",
+    "description": "Rich moisture with a lush floral finish. Shea and cocoa butters are whipped with meadowfoam and jojoba oils, then scented with jasmine and ylang ylang for an everyday ritual that feels wonderfully indulgent.",
+    "body": "The airy scoop softens with the warmth of your hands into a rich layer of care for dry skin. Jasmine brings a full floral fragrance, with ylang ylang adding a smooth, rounded depth. Massage a small amount into arms, legs, and dry spots, taking a moment to enjoy the texture. Arrowroot helps soften the oily feel. Pair it with Jasmine Body Oil if you love having the same scent in two different textures.",
     "price_cents": 2000,
     "stock_snapshot": 17,
     "weight_lb": 0.3725,
@@ -610,7 +731,12 @@
     "parent_slug": "jasmine-whipped-body-butter",
     "jar_capacity_oz": 4,
     "photo_slug": "jasmine-whipped-body-butter-4oz",
-    "square_variation_name": "4oz Jasmine Whipped Body Butter"
+    "square_variation_name": "4oz Jasmine Whipped Body Butter",
+    "highlights": [
+      "Lush jasmine and ylang ylang fragrance",
+      "Shea and cocoa butters for rich skin conditioning",
+      "A whipped scoop that softens as you massage"
+    ]
   },
   {
     "slug": "lavender-whipped-body-butter-4oz",
@@ -637,8 +763,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "4 oz jar capacity",
-    "description": "Rich shea and cocoa butters whipped with meadowfoam and jojoba oils. Scented with lavender, ylang ylang, and honey fragrance.",
-    "body": "Start with a small scoop and let it soften between your hands. Work it into dry areas, such as elbows, knees, and heels.",
+    "description": "End the day with soft skin and a familiar favorite. Rich shea and cocoa butters meet meadowfoam and jojoba oils in a whipped blend scented with lavender, ylang ylang, and a gentle hint of honey fragrance.",
+    "body": "Warm a small scoop in your palms and work it into the places that crave a little more moisture: hands, elbows, knees, and heels. The whipped texture gives way to a rich, buttery feel, while arrowroot helps soften the oily finish. Herbal lavender, rounded by floral and sweet notes, makes this an inviting addition to your evening routine. A little is plenty to start with.",
     "price_cents": 2000,
     "stock_snapshot": 0,
     "weight_lb": 0.3725,
@@ -652,7 +778,12 @@
     "parent_slug": "lavender-whipped-body-butter",
     "jar_capacity_oz": 4,
     "photo_slug": "lavender-whipped-body-butter-4oz",
-    "square_variation_name": "4oz Lavender Whipped Body Butter"
+    "square_variation_name": "4oz Lavender Whipped Body Butter",
+    "highlights": [
+      "Lavender softened by ylang ylang and honey fragrance",
+      "Rich shea and cocoa butters with meadowfoam and jojoba",
+      "A small scoop for hands and other dry spots"
+    ]
   },
   {
     "slug": "unscented-whipped-body-butter-4oz",
@@ -676,8 +807,8 @@
     "warning": "For external use only. Avoid contact with eyes. Discontinue use if irritation occurs.",
     "category": "body-butters",
     "display_size": "4 oz jar capacity",
-    "description": "Our shea and cocoa butter blend without added fragrance or essential oils. You may notice the natural scent of the ingredients.",
-    "body": "Whipped with meadowfoam and jojoba oils for a rich texture. Start with a small amount, especially on warmer days.",
+    "description": "All the richness, with no added fragrance. Shea and cocoa butters are whipped with meadowfoam and jojoba oils to leave dry skin feeling soft, supple, and cared for.",
+    "body": "Choose this butter when you want the texture to be the star, or when you prefer your body care to leave room for your own favorite fragrance. There are no added essential oils or perfume; you may still notice the natural scent of the butters and oils. Warm a small scoop between your hands and massage into dry areas. Arrowroot helps soften the oily feel of this rich, concentrated blend.",
     "price_cents": 2000,
     "stock_snapshot": 0,
     "weight_lb": 0.3725,
@@ -691,7 +822,12 @@
     "parent_slug": "unscented-whipped-body-butter",
     "jar_capacity_oz": 4,
     "photo_slug": "unscented-whipped-body-butter-4oz",
-    "square_variation_name": "4oz Unscented Whipped Body Butter"
+    "square_variation_name": "4oz Unscented Whipped Body Butter",
+    "highlights": [
+      "No added fragrance or essential oils",
+      "Shea and cocoa butters with meadowfoam and jojoba",
+      "Rich, whipped care with the ingredients’ natural scent"
+    ]
   },
   {
     "slug": "eucalyptus-whipped-body-butter-4oz",
@@ -703,8 +839,8 @@
     "use": "Massage a small amount onto clean, dry skin.",
     "storage": "Store in a cool, dry place.",
     "warning": "For external use only.",
-    "description": "Eucalyptus whipped body butter in your choice of jar size.",
-    "body": "Choose a 4 oz or 8 oz jar. Contact us for the full ingredient list.",
+    "description": "A fresh-scented take on a rich daily ritual. Eucalyptus gives this whipped body butter an inviting herbal character, with a creamy texture made for taking a little extra time over dry skin.",
+    "body": "If you gravitate toward fresh, spa-like scents, make this your butter. Warm a small amount between your hands and massage it into clean, dry skin, paying attention to elbows and knees. Choose a 4 oz jar for a smaller everyday companion or an 8 oz jar to keep your favorite close for longer. Need to check an ingredient? Send us a note for the full formula before ordering.",
     "price": "$20",
     "price_cents": 2000,
     "stock_snapshot": 0,
@@ -720,6 +856,11 @@
     "size": "4 oz jar capacity",
     "parent_slug": "eucalyptus-whipped-body-butter",
     "jar_capacity_oz": 4,
-    "square_variation_name": "4oz Eucalyptus Body Butter"
+    "square_variation_name": "4oz Eucalyptus Body Butter",
+    "highlights": [
+      "Fresh eucalyptus scent",
+      "Rich whipped texture for dry skin",
+      "Choose a 4 oz or 8 oz jar"
+    ]
   }
 ]

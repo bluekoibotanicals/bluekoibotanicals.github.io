@@ -14,11 +14,11 @@ export async function square(env, path, body, method = body ? 'POST' : 'GET') {
   }
   return data;
 }
-// Resolve named sizes in the active Square environment. The old standalone Jasmine ID
+// Resolve named sizes and explicitly name-matched new products in the active Square environment. The old standalone Jasmine ID
 // is intentionally never a fallback. Cache only a complete, unambiguous catalog response.
 const variationCache = new Map();
 async function mappedProducts(env) {
-  if (!products.some(p=>p.square_variation_name)) return products;
+  if (!products.some(p=>p.square_variation_name || p.square_match_by_name)) return products;
   const key = [env.SQUARE_ENVIRONMENT, env.SQUARE_LOCATION_ID, env.SQUARE_ACCESS_TOKEN].join(':');
   let cached = variationCache.get(key);
   if (!cached || cached.expires < Date.now() || env.FETCH) {
@@ -32,7 +32,7 @@ async function mappedProducts(env) {
     variationCache.set(key,cached);
   }
   return products.map(p=>{
-    if (!p.square_variation_name) return p;
+    if (!p.square_variation_name && !p.square_match_by_name) return p;
     const matches = variationCandidates(p,cached.variations);
     return {...p, square_variation_id:matches.length===1 ? matches[0].variation_id : null};
   });

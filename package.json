@@ -10,7 +10,8 @@
     "deploy": "npm run build && npx wrangler deploy",
     "db:local": "npx wrangler d1 migrations apply blue-koi-store --local",
     "db:remote": "npx wrangler d1 migrations apply blue-koi-store --remote",
-    "test:browser": "node tests/browser-check.mjs"
+    "test:browser": "node tests/browser-check.mjs",
+    "test:roll-on-browser": "node tests/roll-on-browser.mjs"
   },
   "engines": {
     "node": ">=22.13"

@@ -14,13 +14,15 @@ LISTED_PRODUCTS = [p for p in PRODUCTS if p.get('parent_slug', p['slug']) == p['
 SHOP = 'https://blue-koi-botanicals-llc.square.site'
 EMAIL = 'blue.koi.botanicals@gmail.com'
 CATEGORIES = {
-    'cbd-salves': ('CBD Salves', 'Two sizes. Same cooling balm.', 'Coconut oil, shea butter, and beeswax make a firm balm that softens as you work it into your skin. Both jars use CBD isolate, with menthol, eucalyptus, and camphor for a cooling feel.', 'category-cbd-salves', '2 oz and 4 oz'),
-    'body-oils': ('Body Oils', 'A few drops after a shower.', 'Our body oils start with meadowfoam and jojoba. They spread easily over damp skin and leave a light sheen. Choose from four scents, from soft florals to warm cedarwood.', 'category-body-oils', 'Four scents · 4 fl oz'),
-    'magnesium-sprays': ('Magnesium Body Mists', 'Rose or lavender. Your choice.', 'Magnesium chloride, flower water, and aloe in a spray bottle. Choose rose for its fresh floral scent or lavender for a softer herbal scent. Start with a small amount and follow the directions on your bottle.', 'category-magnesium-sprays', 'Two scents · 4 fl oz'),
-    'lip-balms': ('Lip Balms', 'Something for your pocket.', 'Beeswax, cocoa butter, shea butter, meadowfoam, and jojoba make a balm for dry lips. Honey Lavender is lightly sweet and floral; Lavender Spearmint has a fresh, minty scent.', 'category-lip-balms', 'Two blends · 0.19 oz'),
-    'body-butters': ('Whipped Body Butters', 'For the spots that need more moisture.', 'Shea and cocoa butters, whipped with meadowfoam and jojoba oils for a rich texture. A small scoop is plenty to start with. Choose your favorite scent and size below.', 'category-body-butters', 'Five scents · 4 oz & 8 oz jars'),
+    'cbd-salves': ('CBD Salves', 'Rich care. A refreshing finish.', 'Take a moment to work a little care into your day. Our rich CBD salves soften with the warmth of your hands, combining coconut oil, shea butter, and beeswax with cooling menthol, eucalyptus, and camphor. Choose a compact 2 oz jar or make room for more of your favorite with 4 oz.', 'category-cbd-salves', '2 oz and 4 oz'),
+    'cbd-roll-ons': ('CBD Roll-On', 'Your cooling ritual, ready to go.', 'Silky oils, a refreshing feel, and a roller that goes where you do. Our 10 mL CBD Roll-On combines 1,000 mg of CBD isolate with MCT and jojoba oils, skin-conditioning bisabolol and vitamin E, and a light eucalyptus-lavender scent. Glide on a little care without reaching for a jar.', 'cbd-roll-on', '10 mL · 1,000 mg CBD'),
+    'body-oils': ('Body Oils', 'Turn the last minute of your shower into your favorite.', 'A few drops, a soft sheen, and a scent you look forward to wearing. Our meadowfoam and jojoba body oils glide over damp skin, making everyday moisture feel a little more indulgent. Find your favorite among lush florals, fresh eucalyptus, and warm cedarwood vanilla.', 'category-body-oils', 'Four scents · 4 fl oz'),
+    'magnesium-sprays': ('Magnesium Body Mists', 'A small spritz. A moment for yourself.', 'Make a little room for ritual with magnesium chloride, botanical flower waters, and aloe. Choose softly herbal Lavender for your evening essentials or delicate Rose for a fresh floral moment. These water-based body mists have a distinctive mineral feel; start with a small amount and follow the care directions.', 'category-magnesium-sprays', 'Two scents · 4 fl oz'),
+    'lip-balms': ('Lip Balms', 'Little comforts you can take everywhere.', 'Buttery softness in a pocket-sized tube. Beeswax, cocoa and shea butters, meadowfoam, and jojoba come together for a comfortable glide over dry lips. Choose sweet, floral Honey Lavender or fresh Lavender Spearmint—or keep one of each within reach.', 'category-lip-balms', 'Two blends · 0.19 oz'),
+    'body-butters': ('Whipped Body Butters', 'Scoop. Soften. Savor.', 'Treat dry skin to the rich feel of whipped body butter. Start with a small scoop, warm it in your hands, and take an extra moment over elbows, knees, and other dry spots. Choose warm, floral, fresh, or unscented, with 4 oz and 8 oz jar capacities to suit your routine.', 'category-body-butters', 'Five scents · 4 oz & 8 oz jars'),
 }
 PHOTOS = {
+    'cbd-roll-on': ('cbd-roll-on.jpeg', 'Blue Koi CBD Roll-On, 10 mL with 1,000 mg CBD, in an amber bottle with a black cap', '1122', '1402'),
     'category-cbd-salves': ('category-cbd-salves.jpeg', 'Blue Koi CBD Salves in 2 oz and 4 oz jars', '1122', '1402'),
     'category-body-oils': ('category-body-oils.jpeg', 'Blue Koi body oils in Jasmine, Eucalyptus, Cedarwood Vanilla, and Lavender', '1122', '1402'),
     'category-magnesium-sprays': ('category-magnesium-sprays.jpeg', 'Blue Koi Rose and Lavender Magnesium Body Mists', '1122', '1402'),
@@ -122,23 +124,24 @@ def render_home():
         features += f'<a class="feature-card" href="products/{slug}.html">{photo(product_photo(p), extra="product-shot")}<div class="card-title"><h3>{p["name"]}</h3><span class="price" data-product-price="{slug}">{p["price"]}</span></div><p>{e(p["description"])}</p><span class="text-link">Meet the {"oil" if p["category"] == "body-oils" else "butter"}</span></a>'
     body = f'''<section class="hero"><div class="wrap hero-grid"><div>
 <p class="eyebrow">Rooted in Virginia</p><h1>A little care,<br><em>just for you.</em></h1>
-<p class="lead">We make body oils, salves, balms, and butters in small batches here in Virginia. Take a look around, or come say hello at the market.</p>
+<p class="lead">Soft skin. Scents you look forward to. Small moments that feel like yours. Discover our body oils, CBD salves and roll-on, mists, balms, and whipped butters, made by hand in Virginia.</p>
 <div class="actions"><a class="button" href="products.html">Find your favorite</a><a class="text-link" href="about.html">Meet the maker</a></div>
 <p class="hero-note">Woman-owned &nbsp;·&nbsp; Made in small batches</p></div>
 <figure class="hero-photo">{photo('category-body-oils', eager=True, extra='category-shot')}<figcaption class="photo-caption"><span>Four scents. One simple oil blend.</span>Meadowfoam + jojoba</figcaption></figure></div></section>
 <section class="section section-border"><div class="wrap"><div class="section-head"><div><p class="eyebrow">The collection</p><h2>What we make.</h2></div><a class="text-link" href="products.html">Browse all products</a></div><div class="collection-grid">{cats}</div></div></section>
+<section class="section roll-on-section"><div class="wrap roll-on-feature"><a class="roll-on-photo" href="products/cbd-roll-on.html">{photo('cbd-roll-on', extra='product-shot')}</a><div><p class="eyebrow">Meet your new everyday companion</p><h2>A little care.<br>Ready to roll.</h2><p class="lead">Cooling menthol. Silky oils. A fresh hint of eucalyptus and lavender. Our new CBD Roll-On puts your favorite small moment of care in a bottle that goes where you do.</p><p>1,000 mg CBD · 10 mL · <span data-product-price="cbd-roll-on">$26</span></p><a class="button" href="products/cbd-roll-on.html">Meet the CBD Roll-On</a></div></div></section>
 <section class="section jasmine-section"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Jasmine &amp; ylang ylang</p><h2>Oil or butter?</h2></div><p>A few drops of oil on damp skin, or a small scoop of butter for the dry spots. The same floral scent, in two different textures.</p></div><div class="feature-grid">{features}</div></div></section>
 <section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><dl class="market-schedule"><div><dt>Farmer’s in the Park</dt><dd>Wednesdays · 3–7 p.m.<br>Through October 28, 2026</dd></div><div><dt>Charlottesville City Market</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>Through December 19, 2026<br><span>We won’t be there November 7 or 14.</span></dd></div></dl></div>{render_market_calendar()}</div></section>'''
-    page('index.html', 'Handmade Body Care in Virginia', 'Body oils, CBD salves, lip balms, magnesium mists, and whipped body butters made by Gwyn in small batches in Virginia.', body, 'index.html')
+    page('index.html', 'Handmade Body Care in Virginia', 'Discover small-batch body oils, CBD salves and roll-on, lip balms, magnesium mists, and whipped body butters, handmade in Virginia.', body, 'index.html')
 
 
 def render_products():
     sections = ''
     for slug, v in CATEGORIES.items():
-        cards = ''.join(product_card(p, brief=True) for p in LISTED_PRODUCTS if p['category'] == slug)
+        cards = ''.join(product_card(p) for p in LISTED_PRODUCTS if p['category'] == slug)
         sections += f'<section id="{slug}" class="catalog-category"><div class="section-head"><div><h2>{v[0]}</h2><p>{v[1]}</p></div><a class="text-link" href="products/{slug}.html">About our {v[0].lower()}</a></div><div class="product-grid">{cards}</div></section>'
     body = f'<section class="page-top"><div class="wrap"><p class="eyebrow">Our products</p><h1>The Blue Koi collection.</h1><p class="lead">Something for dry hands, a favorite scent after a shower, or a lip balm to keep close. Here’s the whole Blue Koi collection.</p>{category_nav()}</div></section><div class="wrap product-section">{sections}<p class="shop-note">Orders process in 1–3 days. Choose your delivery service and see current shipping rates at checkout.</p></div>'
-    page('products.html', 'Our Products', 'Browse the Blue Koi collection: handmade body oils, CBD salves, magnesium mists, lip balms, and whipped body butters.', body)
+    page('products.html', 'Our Products', 'Find your daily favorites: handmade body oils, CBD salves and roll-on, magnesium mists, lip balms, and whipped body butters.', body)
     for slug, v in CATEGORIES.items():
         selected = [p for p in LISTED_PRODUCTS if p['category'] == slug]
         cards = ''.join(product_card(p, '../') for p in selected)
@@ -167,8 +170,10 @@ def render_detail(p):
     care = ('<p>'+e(storage)+'</p>' if storage else '') + '<p>'+e(p['warning'])+'</p>'
     info += details('Storage & care', care)
     lab = '<a class="lab-link" href="../assets/coa/R251119MS08MS126_COA.pdf" target="_blank" rel="noopener noreferrer">Read the CBD lab report (PDF)</a>' if p['category'] == 'cbd-salves' else ''
-    related = [x for x in selected if x['slug'] != slug][:3]
+    related = [x for x in LISTED_PRODUCTS if x['slug'] != slug and (x['category'] == p['category'] or (p['cbd'] and x['cbd']))][:3]
     cards = ''.join(product_card(x, '../', True) for x in related)
+    variant_nav = f'<div class="variants"><p class="variants-label">{variant_label}</p><nav class="variant-list" aria-label="{variant_label}">{variants}</nav></div>' if len(selected) > 1 else ''
+    highlights = '<ul class="product-highlights">' + ''.join('<li>'+e(x)+'</li>' for x in p.get('highlights', [])) + '</ul>' if p.get('highlights') else ''
     sizes = ''
     if p['category'] == 'body-butters':
         sizes = '<fieldset class="size-selector"><legend>Choose your jar size</legend><div class="size-options">'
@@ -179,13 +184,13 @@ def render_detail(p):
     body = f'''<section class="product-detail wrap" data-product-detail="{slug}"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><a href="{p['category']}.html">{category}</a></div>
 <div class="detail-grid"><figure class="detail-image">{photo(product_photo(p), '../', True, 'product-shot')}</figure>
 <article class="detail-copy"><p class="eyebrow">{category}</p><h1>{e(p['name'])}</h1><div class="product-spec"><span class="price" data-product-price="{slug}">{e(p['price'])}</span><span class="muted" data-selected-size>{e(p['display_size'])}</span></div>
-<p class="lead">{e(p['description'])}</p><p class="body-copy">{e(p['body'])}</p>
-<div class="variants"><p class="variants-label">{variant_label}</p><nav class="variant-list" aria-label="{variant_label}">{variants}</nav></div>
+<p class="lead">{e(p['description'])}</p>{highlights}
+{variant_nav}
 {sizes}
 <div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>{'Sold out' if not p['stock_snapshot'] else 'Loading…'}</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD cannot ship to Colorado, Idaho, or Wyoming.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
-<div class="details-list">{info}</div>{lab}</article></div></section>
+<div class="product-story"><h2>A closer look</h2><p class="body-copy">{e(p['body'])}</p></div><div class="details-list">{info}</div>{lab}</article></div></section>
 <section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
-<section class="related"><div class="wrap"><div class="section-head"><h2>Also in this collection.</h2><a class="text-link" href="{p['category']}.html">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
+<section class="related"><div class="wrap"><div class="section-head"><h2>{'More CBD favorites.' if p['cbd'] else 'Also in this collection.'}</h2><a class="text-link" href="{'../products.html' if p['cbd'] else p['category']+'.html'}">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
     page('products/'+slug+'.html', p['name'], p['description'], body)
 
 

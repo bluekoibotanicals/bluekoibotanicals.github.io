@@ -138,7 +138,7 @@ try{
   await checkout.locator('#admin-reviews').getByText(/published/).waitFor();
   assert.equal((await f.request('/api/reviews?product=lavender-spearmint-lip-balm')).data.count,1);
   await checkout.setViewportSize({width:1440,height:1100});
-  await invite.screenshot({path:'test-results/past-invitation-desktop.png'});
+  await checkout.screenshot({path:'test-results/past-invitation-desktop.png',fullPage:true});
   assert.deepEqual(failures,[]);
   await f.flush();await context.close();f.close();
   console.log('Browser checks passed: desktop/mobile layouts, UTF-8 characters, U.S. delivery form, discount code, combined package, tax in VA and CA, simulated card purchase, order confirmation, past-customer invitation, private review submission and moderation; no page errors.');
