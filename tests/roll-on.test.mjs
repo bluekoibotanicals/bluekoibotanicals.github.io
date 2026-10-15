@@ -34,14 +34,14 @@ test('roll-on resolves live Square price and stock, quotes shipping and purchase
   }finally{f.close();}
 });
 
-test('roll-on honors CBD delivery restrictions and does not request shipping for excluded states',async()=>{
+test('roll-on ships to Colorado, Idaho, and Wyoming',async()=>{
   const f=fixture();f.state.stock['cbd-roll-on']=8;
   try{
     for(const state of ['CO','ID','WY']){
       const q=await f.quote([{slug:'cbd-roll-on',quantity:1}],{...address,state});
-      assert.equal(q.status,400);assert.equal(q.data.code,'CBD_STATE_RESTRICTED');
+      assert.equal(q.status,200);
     }
-    assert.equal(f.state.shippingCalls,0);assert.equal(f.state.paymentCalls,0);
+    assert.equal(f.state.shippingCalls,3);assert.equal(f.state.paymentCalls,0);
   }finally{f.close();}
 });
 

@@ -45,7 +45,7 @@ try{
   await page.locator('summary').filter({hasText:'Ingredients'}).click();
   assert.equal(await page.locator('.ingredients li').count(),8);
   assert.match(await page.locator('.detail-copy').innerText(),/Bisabolol/);
-  assert.match(await page.locator('.detail-copy').innerText(),/Colorado, Idaho, or Wyoming/);
+  assert.match(await page.locator('.detail-copy').innerText(),/all 50 states and Washington/);
   await capture('test-results/roll-on-desktop.png');
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

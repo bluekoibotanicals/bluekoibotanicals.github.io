@@ -28,6 +28,7 @@
 		"EMAIL_FROM": "Blue Koi Botanicals <orders@bluekoibotanicals.com>",
 		"OWNER_EMAIL": "blue.koi.botanicals@gmail.com",
 		"LIVE_LAUNCH_CONFIRMED": "true",
+		"SHIPPO_AUTO_LABELS": "true",
 		"SQUARE_WEBHOOK_URL": "https://bluekoibotanicals.com/api/webhooks/square"
 	},
 	"triggers": {

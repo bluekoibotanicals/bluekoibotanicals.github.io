@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {fixture,address} from './fixture.mjs';
-import {products,store,parcels,now,totals,promotionalRates} from '../server/core.mjs';
+import {products,store,parcels,now,totals,promotionalRates,US_STATES,checkDestination} from '../server/core.mjs';
 import {maintenance} from '../server/worker.mjs';
 const lip='honey-lavender-lip-balm',cbd='cbd-salve';
 const admin=f=>({Authorization:'Bearer '+f.env.ADMIN_TOKEN});
@@ -11,23 +11,17 @@ async function pending(f,age=3601){
   await f.env.DB.prepare('UPDATE orders SET created_at=?,updated_at=?,recovery_checked_at=0 WHERE id=?').bind(now()-age,now()-age,p.data.id).run();
   return {q,p};
 }
-test('CBD restrictions include mixed carts; non-CBD can ship to excluded states',async()=>{
+test('CBD and mixed carts can ship to all 50 states and DC',async()=>{
   const f=fixture();
-  for(const state of ['CO','ID','WY']){
-    const a={...address,state};
-    assert.equal((await f.quote([{slug:cbd,quantity:1},{slug:lip,quantity:1}],a)).data.code,'CBD_STATE_RESTRICTED');
-    assert.equal((await f.quote([{slug:lip,quantity:1}],a)).status,200);
+  for(const state of US_STATES)checkDestination([{cbd:true},{cbd:false}],{...address,state});
+  for(const state of ['CO','ID','WY','AK','HI','DC']){
+    assert.equal((await f.quote([{slug:cbd,quantity:1},{slug:lip,quantity:1}],{...address,state})).status,200);
   }
-  assert.equal(f.state.shippingCalls,3);f.close();
+  assert.equal(f.state.shippingCalls,6);f.close();
 });
 test('checkout rechecks destinations and rejects stale policy quotes before charging',async()=>{
   const f=fixture(),q=await f.quote([{slug:cbd,quantity:1}]);
   const row=await f.env.DB.prepare('SELECT data FROM quotes WHERE id=?').bind(q.data.id).first(),data=JSON.parse(row.data);
-  for(const state of ['CO','ID','WY']){
-    data.address.state=state;
-    await f.env.DB.prepare('UPDATE quotes SET data=? WHERE id=?').bind(JSON.stringify(data),q.data.id).run();
-    assert.equal((await f.pay(q)).data.code,'CBD_STATE_RESTRICTED');
-  }
   data.address.country='CA';
   await f.env.DB.prepare('UPDATE quotes SET data=? WHERE id=?').bind(JSON.stringify(data),q.data.id).run();
   assert.equal((await f.pay(q)).data.code,'US_ONLY');

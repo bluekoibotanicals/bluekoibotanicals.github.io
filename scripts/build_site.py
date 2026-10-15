@@ -9,6 +9,7 @@ from market_calendar import render_market_calendar
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTS = json.loads((ROOT / 'content/products.json').read_text(encoding='utf-8'))
+STICKERS = json.loads((ROOT / 'content/stickers.json').read_text(encoding='utf-8'))
 BY_SLUG = {p['slug']: p for p in PRODUCTS}
 LISTED_PRODUCTS = [p for p in PRODUCTS if p.get('parent_slug', p['slug']) == p['slug']]
 SHOP = 'https://blue-koi-botanicals-llc.square.site'
@@ -131,7 +132,7 @@ def render_home():
 <section class="section section-border"><div class="wrap"><div class="section-head"><div><p class="eyebrow">The collection</p><h2>What we make.</h2></div><a class="text-link" href="products.html">Browse all products</a></div><div class="collection-grid">{cats}</div></div></section>
 <section class="section roll-on-section"><div class="wrap roll-on-feature"><a class="roll-on-photo" href="products/cbd-roll-on.html">{photo('cbd-roll-on', extra='product-shot')}</a><div><p class="eyebrow">Meet your new everyday companion</p><h2>A little care.<br>Ready to roll.</h2><p class="lead">Cooling menthol. Silky oils. A fresh hint of eucalyptus and lavender. Our new CBD Roll-On puts your favorite small moment of care in a bottle that goes where you do.</p><p>1,000 mg CBD · 10 mL · <span data-product-price="cbd-roll-on">$26</span></p><a class="button" href="products/cbd-roll-on.html">Meet the CBD Roll-On</a></div></div></section>
 <section class="section jasmine-section"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Jasmine &amp; ylang ylang</p><h2>Oil or butter?</h2></div><p>A few drops of oil on damp skin, or a small scoop of butter for the dry spots. The same floral scent, in two different textures.</p></div><div class="feature-grid">{features}</div></div></section>
-<section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><dl class="market-schedule"><div><dt>Farmer’s in the Park</dt><dd>Wednesdays · 3–7 p.m.<br>Through October 28, 2026</dd></div><div><dt>Charlottesville City Market</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>Through December 19, 2026<br><span>We won’t be there November 7 or 14.</span></dd></div></dl></div>{render_market_calendar()}</div></section>'''
+<section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><dl class="market-schedule"><div><dt>Farmers Market at IX Art Park</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>October 17–November 21, 2026<br><span>We won’t be there November 7 or 14.</span></dd></div><div><dt>Charlottesville Holiday Market</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>November 28–December 19, 2026</dd></div></dl></div>{render_market_calendar()}</div></section>'''
     page('index.html', 'Handmade Body Care in Virginia', 'Discover small-batch body oils, CBD salves and roll-on, lip balms, magnesium mists, and whipped body butters, handmade in Virginia.', body, 'index.html')
 
 
@@ -152,6 +153,19 @@ def render_products():
 
 def details(title, content, opened=False):
     return f'<details{" open" if opened else ""}><summary>{title}</summary><div class="details-body">{content}</div></details>'
+
+
+def product_gallery(p):
+    primary = photo(product_photo(p), '../', True, 'product-shot')
+    panels = f'<div data-gallery-panel="0" id="product-photo-0">{primary}</div>'
+    filename, alt, _, _ = PHOTOS[product_photo(p)]
+    buttons = f'<button type="button" data-gallery-select="0" aria-pressed="true" aria-controls="product-photo-0" aria-label="Show product photo"><img src="../assets/photos/{filename}" alt="" loading="lazy"><span>Product</span></button>'
+    for i, filename in enumerate(STICKERS.get(p.get('parent_slug', p['slug']), []), 1):
+        label = ('Front label' if i == 1 else 'Back label') if p['category'] == 'cbd-salves' else 'Label'
+        src = '../assets/stickers/' + filename
+        panels += f'<div data-gallery-panel="{i}" id="product-photo-{i}" hidden><a class="sticker-preview" href="{src}" target="_blank" rel="noopener"><img src="{src}" alt="{e(p["name"])} — {label.lower()}" loading="lazy"></a><p class="gallery-caption"><a href="{src}" target="_blank" rel="noopener">View full-size {label.lower()} ↗</a></p></div>'
+        buttons += f'<button type="button" data-gallery-select="{i}" aria-pressed="false" aria-controls="product-photo-{i}" aria-label="Show {label.lower()}"><img src="{src}" alt="" loading="lazy"><span>{label}</span></button>'
+    return f'<figure class="detail-image" data-product-gallery>{panels}<div class="gallery-thumbnails" aria-label="Product images">{buttons}</div></figure>'
 
 
 def render_detail(p):
@@ -182,12 +196,12 @@ def render_detail(p):
             sizes += f'<label class="size-option"><input type="radio" name="jar-size" value="{oz}" data-size-slug="{item["slug"]}"{" checked" if oz == 8 else ""}><span><strong>{oz} oz jar</strong><span data-option-price="{item["slug"]}">{e(item["price"])}</span><small data-option-stock="{item["slug"]}"></small></span></label>'
         sizes += '</div></fieldset><p class="size-upgrade" data-size-upgrade>Double the butter for $8 more</p><p class="small muted">Sizes refer to jar capacity, not net product weight.</p>'
     body = f'''<section class="product-detail wrap" data-product-detail="{slug}"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><a href="{p['category']}.html">{category}</a></div>
-<div class="detail-grid"><figure class="detail-image">{photo(product_photo(p), '../', True, 'product-shot')}</figure>
+<div class="detail-grid">{product_gallery(p)}
 <article class="detail-copy"><p class="eyebrow">{category}</p><h1>{e(p['name'])}</h1><div class="product-spec"><span class="price" data-product-price="{slug}">{e(p['price'])}</span><span class="muted" data-selected-size>{e(p['display_size'])}</span></div>
 <p class="lead">{e(p['description'])}</p>{highlights}
 {variant_nav}
 {sizes}
-<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>{'Sold out' if not p['stock_snapshot'] else 'Loading…'}</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD cannot ship to Colorado, Idaho, or Wyoming.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
+<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>{'Sold out' if not p['stock_snapshot'] else 'Loading…'}</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
 <div class="product-story"><h2>A closer look</h2><p class="body-copy">{e(p['body'])}</p></div><div class="details-list">{info}</div>{lab}</article></div></section>
 <section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
 <section class="related"><div class="wrap"><div class="section-head"><h2>{'More CBD favorites.' if p['cbd'] else 'Also in this collection.'}</h2><a class="text-link" href="{'../products.html' if p['cbd'] else p['category']+'.html'}">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
@@ -219,7 +233,7 @@ def stage():
     for directory in ['css', 'js', 'products']:
         shutil.copytree(ROOT / directory, dist / directory)
     (dist / 'assets').mkdir()
-    for directory in ['photos', 'coa']:
+    for directory in ['photos', 'coa', 'stickers']:
         shutil.copytree(ROOT / 'assets' / directory, dist / 'assets' / directory)
     shutil.copy2(ROOT / 'assets/logo.png', dist / 'assets/logo.png')
     public = [{**{k:p[k] for k in ('slug','name','display_size','price_cents','stock_snapshot','online_enabled','cbd')}, 'parent_slug':p.get('parent_slug'), 'jar_capacity_oz':p.get('jar_capacity_oz'), 'image':'assets/photos/'+PHOTOS[product_photo(p)][0]} for p in PRODUCTS]

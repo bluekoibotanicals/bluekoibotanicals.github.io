@@ -1,30 +1,33 @@
 {
   "year": 2026,
-  "first_month": 9,
+  "first_month": 10,
   "last_month": 12,
   "timezone": "America/New_York",
   "markets": [
     {
-      "id": "park",
-      "name": "Farmer's in the Park",
-      "short_name": "Park",
-      "weekday": 2,
-      "start_date": "2026-09-01",
-      "end_date": "2026-10-31",
-      "start_time": "15:00",
-      "end_time": "19:00",
-      "excluded_dates": []
+      "id": "ix",
+      "name": "Farmers Market at IX Art Park",
+      "short_name": "IX",
+      "weekday": 5,
+      "start_date": "2026-10-17",
+      "end_date": "2026-11-21",
+      "start_time": "09:00",
+      "end_time": "13:00",
+      "excluded_dates": [
+        "2026-11-07",
+        "2026-11-14"
+      ]
     },
     {
-      "id": "city",
-      "name": "Charlottesville City Market",
-      "short_name": "City",
+      "id": "holiday",
+      "name": "Charlottesville Holiday Market",
+      "short_name": "Holiday",
       "weekday": 5,
-      "start_date": "2026-09-01",
+      "start_date": "2026-11-28",
       "end_date": "2026-12-19",
       "start_time": "09:00",
       "end_time": "13:00",
-      "excluded_dates": ["2026-11-07", "2026-11-14"]
+      "excluded_dates": []
     }
   ]
 }

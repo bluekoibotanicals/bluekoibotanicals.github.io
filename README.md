@@ -1,8 +1,8 @@
 # Blue Koi Botanicals
 
-Custom Cloudflare storefront with Square payments/inventory, Shippo rates, Resend notifications, D1 orders, and verified reviews.
+Custom Cloudflare storefront with Square payments/inventory, Shippo rates and automatic labels, Resend notifications, D1 orders, and verified reviews.
 
-Start with [UPDATE.md](UPDATE.md). Production IDs, prices, and live configuration are preserved. No deployment or real transaction was performed.
+Start with [SHIPPING-UPDATE.md](SHIPPING-UPDATE.md). Production IDs, prices, and live configuration are preserved. No deployment or real transaction was performed.
 
 Windows PowerShell:
 ```powershell

@@ -17,11 +17,12 @@ try{
   await calendar.locator('.calendar-controls').waitFor();
   while(await calendar.locator('[data-calendar-previous]').isEnabled())await calendar.locator('[data-calendar-previous]').click();
   await calendar.locator('[data-calendar-next]').click();
-  await calendar.locator('[data-calendar-next]').click();
   const november=calendar.locator('[data-calendar-month="2026-11"]');
   await november.waitFor();
   assert.equal(await november.locator('.visit-away').count(),2);
-  assert.equal(await november.locator('.visit-park').count(),0);
+  assert.equal(await november.locator('.visit-ix:not(.visit-away)').count(),1);
+  assert.equal(await november.locator('.visit-holiday').count(),1);
+  assert.equal(await calendar.getByText(/Farmer.s in the Park/).count(),0);
   await page.screenshot({path:'test-results/home-calendar-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

@@ -39,3 +39,20 @@ if (toggle && links) {
   links.addEventListener('click', (event) => { if (event.target.closest('a')) setOpen(false); });
   window.matchMedia('(min-width: 821px)').addEventListener('change', () => setOpen(false));
 }
+
+// Product photographs stay first; original label artwork opens at full resolution.
+document.querySelectorAll('[data-product-gallery]').forEach(gallery => {
+  const buttons = [...gallery.querySelectorAll('[data-gallery-select]')];
+  const show = index => {
+    gallery.querySelectorAll('[data-gallery-panel]').forEach(panel => {
+      panel.hidden = panel.dataset.galleryPanel !== index;
+    });
+    buttons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.gallerySelect === index)));
+  };
+  buttons.forEach(button => button.addEventListener('click', () => show(button.dataset.gallerySelect)));
+  gallery.addEventListener('product-photo-change', () => {
+    const primary = gallery.querySelector('[data-gallery-panel="0"] img');
+    buttons[0].querySelector('img').src = primary.src;
+    show('0');
+  });
+});

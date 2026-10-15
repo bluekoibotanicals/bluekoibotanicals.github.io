@@ -63,6 +63,7 @@ async function productsUI(){
       $('[data-selected-size]',detail).textContent=p.display_size;
       const img=$('.detail-image img',detail);img.src=pageURL(p.image);img.alt=`${p.name} in a ${p.jar_capacity_oz} oz capacity jar`;
       img.width=p.jar_capacity_oz===4?1086:1122;img.height=p.jar_capacity_oz===4?1448:1402;
+      img.closest('[data-product-gallery]')?.dispatchEvent(new Event('product-photo-change'));
       updateBuyButton($('[data-add-product]',detail),p);
       const stock=$('[data-stock]',detail);stock.dataset.stock=p.slug;stock.textContent=stockMessage(p,data);stock.classList.toggle('sold-out',!p.stock || !p.online_enabled);
       const quantity=$('#product-quantity');quantity.max=Math.max(1,Math.min(12,p.stock));quantity.value=Math.min(Number(quantity.value)||1,Number(quantity.max));

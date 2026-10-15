@@ -44,7 +44,6 @@ export function makeLines(cart, catalog) {
 }
 export function checkDestination(lines, a) {
   if (a.country !== 'US' || !US_STATES.has(a.state)) fail('We ship only to the 50 U.S. states and Washington, D.C.',400,'US_ONLY');
-  if (lines.some(p=>p.cbd) && ['CO','ID','WY'].includes(a.state)) fail('CBD products cannot ship to Colorado, Idaho, or Wyoming. Remove CBD items or use an eligible delivery address.',400,'CBD_STATE_RESTRICTED');
 }
 export function totals(lines, shipping, a, discount = 0) {
   if (!Number.isInteger(shipping) || shipping < 0) fail('Invalid shipping price.');
