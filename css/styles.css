@@ -56,3 +56,34 @@
 .gallery-thumbnails button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
 .gallery-thumbnails img{display:block;width:100%;height:72px;object-fit:contain}
 .gallery-thumbnails span{display:block;margin-top:5px}
+/* Local buying information and product reference pages. */
+.search-content{max-width:900px}
+.search-content h2{margin-bottom:20px}
+.search-content p+h2{margin-top:44px}
+.search-content .actions+p{margin-top:24px}
+.search-wash{background:var(--wash,#f4f1eb)}
+.local-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin-block:32px}
+.local-card{padding:30px;border:1px solid var(--line);background:var(--paper,#fff)}
+.local-card h3{font-size:2rem;margin:0 0 18px}
+.local-card h2{font-size:2.7rem;margin-bottom:20px}
+.local-card p{margin-bottom:18px}
+.local-card .actions{flex-wrap:wrap;gap:16px 24px}
+.local-feature{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.local-feature h2{margin-bottom:20px}
+.local-feature .actions{margin-block:24px}
+.comparison-scroll{max-width:100%;overflow-x:auto;margin-bottom:16px}
+.comparison-table{width:100%;min-width:650px;border-collapse:collapse;text-align:left;font-size:.9375rem}
+.comparison-table caption{text-align:left;font-family:var(--serif);font-size:2rem;margin-bottom:20px}
+.comparison-table th,.comparison-table td{padding:18px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.comparison-table thead{background:var(--wash,#f4f1eb)}
+.comparison-table th[scope="row"]{min-width:145px;font-weight:500}
+.comparison-table td:last-child{white-space:nowrap}
+.search-facts{margin-block:28px 40px}
+.search-facts>div{display:grid;grid-template-columns:1fr 1.4fr;gap:24px;padding:15px 0;border-bottom:1px solid var(--line)}
+.search-facts dt{font-weight:500}
+.search-facts dd{margin:0;overflow-wrap:anywhere}
+.search-faq summary{line-height:1.5}
+.lab-note .small{margin-top:10px}
+.breadcrumbs{flex-wrap:wrap;row-gap:8px}
+@media(max-width:1000px) and (min-width:821px){.nav-links{gap:14px}.nav-links a{font-size:.8125rem}.brand-name{font-size:1.7rem}.brand img{width:54px;height:54px}}
+@media(max-width:700px){.local-cards,.local-feature{grid-template-columns:1fr}.local-card{padding:24px}.local-feature{gap:28px}.search-facts>div{grid-template-columns:1fr;gap:6px}}

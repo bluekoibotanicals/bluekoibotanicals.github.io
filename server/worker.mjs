@@ -2,6 +2,7 @@ import {store, products, StoreError, fail, now, uuid, digest, hmac, safeEqual, c
 import {catalog, shipping, square, squareAddress, squareOrder, sendEmail} from './providers.mjs';
 import {ensureLabel, maintainLabels} from './labels.mjs';
 import {createPastInvitation,listPastInvitations,pastInvitationAction,retryPastInvitations} from './past-reviews.mjs';
+import {canonicalRedirect, isPrivatePage} from './seo-routing.mjs';
 const checkoutPolicy=()=>JSON.stringify({version:5,tax:store.tax});
 const stmt = (env,sql,...values) => env.DB.prepare(sql).bind(...values);
 const first = (env,sql,...values) => stmt(env,sql,...values).first();
@@ -323,6 +324,8 @@ export default {
     const url=new URL(req.url), api=url.pathname.startsWith('/api/');let cookie;
     try {
       if (!api) {
+        const redirect = canonicalRedirect(req, products);
+        if (redirect) return secure(redirect,url,false);
         const response=await env.ASSETS.fetch(req);return secure(response,url,false);
       }
       if (!['GET','POST'].includes(req.method)) fail('Method not allowed.',405);
@@ -343,7 +346,11 @@ export default {
 function secure(response,url,api,cookie) {
   const r=new Response(response.body,response);r.headers.set('Content-Security-Policy',CSP);r.headers.set('X-Content-Type-Options','nosniff');r.headers.set('Referrer-Policy','no-referrer');r.headers.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
   if (url.protocol==='https:')r.headers.set('Strict-Transport-Security','max-age=31536000');
-  if (api || ['admin','review','checkout','order'].some(p=>url.pathname===`/${p}.html`))r.headers.set('Cache-Control','no-store');
+  if (api || isPrivatePage(url.pathname)) {
+    r.headers.set('Cache-Control','no-store');
+    r.headers.set('X-Robots-Tag','noindex, nofollow');
+  }
+  if (r.status>=400)r.headers.set('X-Robots-Tag','noindex');
   if (cookie)r.headers.set('Set-Cookie',cookie);return r;
 }
 export async function maintenance(env) {

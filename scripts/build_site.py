@@ -6,6 +6,8 @@ import json
 import shutil
 from commerce_pages import render_commerce_pages
 from market_calendar import render_market_calendar
+from seo import page_head, clean_public_links, write_discovery, absolute
+from search_pages import render_search_pages, local_product_note
 
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTS = json.loads((ROOT / 'content/products.json').read_text(encoding='utf-8'))
@@ -68,7 +70,7 @@ def photo(key, prefix='', eager=False, extra=''):
 
 
 def nav(prefix, active):
-    items = [('index.html', 'Home'), ('products.html', 'Products'), ('about.html', 'Our story'), ('contact.html', 'Contact')]
+    items = [('index.html', 'Home'), ('products.html', 'Products'), ('cbd-charlottesville.html', 'Find us locally'), ('about.html', 'Our story'), ('contact.html', 'Contact')]
     links = ''.join(f'<li><a href="{prefix}{url}"'+(' aria-current="page"' if active == url else '')+f'>{label}</a></li>' for url, label in items)
     return f'''<a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header"><nav class="nav wrap" aria-label="Main navigation">
@@ -81,7 +83,7 @@ def nav(prefix, active):
 def footer(prefix):
     return f'''<footer class="site-footer"><div class="wrap">
 <div class="footer-top"><div><a class="footer-brand" href="{prefix}index.html">Blue Koi Botanicals</a><p>Body care made by hand in Virginia.<br>Thanks for supporting a small business.</p></div>
-<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact us</a></li><li><a href="{prefix}shipping-returns.html">Shipping &amp; returns</a></li><li><a href="{prefix}privacy.html">Privacy</a></li></ul>
+<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}cbd-charlottesville.html">Find us in Charlottesville</a></li><li><a href="{prefix}cbd-salve-vs-roll-on.html">Salve or roll-on?</a></li><li><a href="{prefix}cbd-lab-reports.html">CBD lab report</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact us</a></li><li><a href="{prefix}shipping-returns.html">Shipping &amp; returns</a></li><li><a href="{prefix}privacy.html">Privacy</a></li></ul>
 <div><div class="footer-label">Have a question?</div><a class="footer-email" href="mailto:{EMAIL}">{EMAIL}</a><p>Based in Charlottesville, Virginia.</p></div></div>
 <div class="footer-bottom"><p>© 2026 Blue Koi Botanicals LLC</p><p>For external use only. Statements on this site have not been evaluated by the FDA. Products are not intended to diagnose, treat, cure, or prevent disease.</p></div>
 </div></footer>'''
@@ -89,16 +91,30 @@ def footer(prefix):
 
 def page(path, title, description, body, active='products.html'):
     prefix = '../' if path.startswith('products/') else ''
+    slug = Path(path).stem
+    product = BY_SLUG.get(slug) if path.startswith('products/') else None
+    category = CATEGORIES.get(slug) if path.startswith('products/') else None
+    image = 'assets/photos/' + PHOTOS[product_photo(product)][0] if product else 'assets/photos/' + PHOTOS[category[3]][0] if category else 'assets/photos/market.jpeg'
+    breadcrumbs = None
+    if product:
+        breadcrumbs = [('Home', 'index.html'), ('Products', 'products.html'), (CATEGORIES[product['category']][0], 'products/'+product['category']+'.html'), (product['name'], path)]
+    elif category:
+        breadcrumbs = [('Home', 'index.html'), ('Products', 'products.html'), (category[0], path)]
+    elif path in {'cbd-charlottesville.html', 'cbd-salve-vs-roll-on.html', 'cbd-lab-reports.html'}:
+        label = {'cbd-charlottesville.html': 'Find us in Charlottesville', 'cbd-salve-vs-roll-on.html': 'CBD salve vs. roll-on', 'cbd-lab-reports.html': 'CBD lab reports'}[path]
+        breadcrumbs = [('Home', 'index.html'), (label, path)]
+    metadata = page_head(path, title, description, image=image, product=product, breadcrumbs=breadcrumbs, collection=bool(category))
     doc = f'''<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)} | Blue Koi Botanicals</title><meta name="description" content="{e(description)}">
+{metadata}
 <meta name="theme-color" content="#173d52"><link rel="icon" type="image/png" href="{prefix}assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{prefix}css/styles.css"><link rel="stylesheet" href="{prefix}css/commerce.css"><script defer src="{prefix}js/site.js"></script><script type="module" src="{prefix}js/commerce.js"></script>
 </head><body>{nav(prefix, active)}<main id="main"><noscript><p class="notice wrap">Please enable JavaScript to use the shopping bag and checkout, or email us for help placing an order.</p></noscript>{body}</main>{footer(prefix)}</body></html>'''
-    (ROOT / path).write_text(doc + '\n', encoding='utf-8')
+    (ROOT / path).write_text(clean_public_links(doc, path) + '\n', encoding='utf-8')
 
 
 def category_nav(prefix='', active=''):
@@ -113,7 +129,7 @@ def product_photo(p):
 def product_card(p, prefix='', brief=False):
     return f'''<a class="product-card" href="{prefix}products/{p['slug']}.html">
 {photo(product_photo(p), prefix, extra='product-shot')}<div class="card-meta">{e('4 oz & 8 oz jars' if p.get('parent_slug') else p['display_size'])}</div>
-<div class="card-title"><h3>{e(p['name'])}</h3><span class="price" data-product-price="{p['slug']}">{e(p['price'])}</span></div><span class="stock-note" data-stock="{p['slug']}">{'Sold out' if not p['stock_snapshot'] else ''}</span>
+<div class="card-title"><h3>{e(p['name'])}</h3><span class="price" data-product-price="{p['slug']}">{e(p['price'])}</span></div><span class="stock-note" data-stock="{p['slug']}"></span>
 {'' if brief else '<p>'+e(p['description'])+'</p>'}<span class="text-link">Take a closer look</span></a>'''
 
 
@@ -124,16 +140,17 @@ def render_home():
         p = BY_SLUG[slug]
         features += f'<a class="feature-card" href="products/{slug}.html">{photo(product_photo(p), extra="product-shot")}<div class="card-title"><h3>{p["name"]}</h3><span class="price" data-product-price="{slug}">{p["price"]}</span></div><p>{e(p["description"])}</p><span class="text-link">Meet the {"oil" if p["category"] == "body-oils" else "butter"}</span></a>'
     body = f'''<section class="hero"><div class="wrap hero-grid"><div>
-<p class="eyebrow">Rooted in Virginia</p><h1>A little care,<br><em>just for you.</em></h1>
-<p class="lead">Soft skin. Scents you look forward to. Small moments that feel like yours. Discover our body oils, CBD salves and roll-on, mists, balms, and whipped butters, made by hand in Virginia.</p>
+<p class="eyebrow">Charlottesville, Virginia · Small-batch body care</p><h1>A little care,<br><em>just for you.</em></h1>
+<p class="lead">Soft skin. Scents you look forward to. Small moments that feel like yours. Discover our CBD salves and roll-on, body oils, mists, balms, and whipped butters, made by hand in Virginia. Shop online or find our table at a Charlottesville market.</p>
 <div class="actions"><a class="button" href="products.html">Find your favorite</a><a class="text-link" href="about.html">Meet the maker</a></div>
 <p class="hero-note">Woman-owned &nbsp;·&nbsp; Made in small batches</p></div>
 <figure class="hero-photo">{photo('category-body-oils', eager=True, extra='category-shot')}<figcaption class="photo-caption"><span>Four scents. One simple oil blend.</span>Meadowfoam + jojoba</figcaption></figure></div></section>
 <section class="section section-border"><div class="wrap"><div class="section-head"><div><p class="eyebrow">The collection</p><h2>What we make.</h2></div><a class="text-link" href="products.html">Browse all products</a></div><div class="collection-grid">{cats}</div></div></section>
+<section class="section search-wash"><div class="wrap search-content"><p class="eyebrow">From Virginia, with care</p><h2>CBD salves &amp; roll-on.<br>Find your everyday format.</h2><p class="lead">Choose a 2 oz CBD salve with 1,000 mg CBD, a 4 oz salve with 2,000 mg CBD, or a 10 mL CBD Roll-On with 1,000 mg CBD. Read the ingredients, compare textures, and find us at a scheduled Charlottesville market.</p><div class="actions"><a class="button" href="products/cbd-salves.html">Explore CBD salves</a><a class="text-link" href="products/cbd-roll-on.html">Meet the CBD roll-on</a><a class="text-link" href="cbd-charlottesville.html">Find us in Charlottesville</a></div><p class="small"><a href="cbd-salve-vs-roll-on.html">Not sure which format to choose? Compare salve and roll-on.</a></p></div></section>
 <section class="section roll-on-section"><div class="wrap roll-on-feature"><a class="roll-on-photo" href="products/cbd-roll-on.html">{photo('cbd-roll-on', extra='product-shot')}</a><div><p class="eyebrow">Meet your new everyday companion</p><h2>A little care.<br>Ready to roll.</h2><p class="lead">Cooling menthol. Silky oils. A fresh hint of eucalyptus and lavender. Our new CBD Roll-On puts your favorite small moment of care in a bottle that goes where you do.</p><p>1,000 mg CBD · 10 mL · <span data-product-price="cbd-roll-on">$26</span></p><a class="button" href="products/cbd-roll-on.html">Meet the CBD Roll-On</a></div></div></section>
 <section class="section jasmine-section"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Jasmine &amp; ylang ylang</p><h2>Oil or butter?</h2></div><p>A few drops of oil on damp skin, or a small scoop of butter for the dry spots. The same floral scent, in two different textures.</p></div><div class="feature-grid">{features}</div></div></section>
-<section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><dl class="market-schedule"><div><dt>Farmers Market at IX Art Park</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>October 17–November 21, 2026<br><span>We won’t be there November 7 or 14.</span></dd></div><div><dt>Charlottesville Holiday Market</dt><dd>Saturdays · 9 a.m.–1 p.m.<br>November 28–December 19, 2026</dd></div></dl></div>{render_market_calendar()}</div></section>'''
-    page('index.html', 'Handmade Body Care in Virginia', 'Discover small-batch body oils, CBD salves and roll-on, lip balms, magnesium mists, and whipped body butters, handmade in Virginia.', body, 'index.html')
+<section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><p><a class="text-link" href="cbd-charlottesville.html">Market locations &amp; visiting details</a></p></div>{render_market_calendar()}</div></section>'''
+    page('index.html', 'Virginia CBD Salve, Roll-On & Handmade Body Care', 'Shop Virginia-made CBD salve, roll-on and handmade body care from Blue Koi Botanicals. Find us at Charlottesville markets or order online.', body, 'index.html')
 
 
 def render_products():
@@ -147,8 +164,14 @@ def render_products():
         selected = [p for p in LISTED_PRODUCTS if p['category'] == slug]
         cards = ''.join(product_card(p, '../') for p in selected)
         grid = 'product-grid pair' if len(selected) == 2 else 'product-grid'
-        body = f'<section class="page-top"><div class="wrap"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><span>{v[0]}</span></div><p class="eyebrow">{v[4]}</p><h1>{v[0]}</h1><p class="lead">{v[2]}</p>{category_nav("../", slug)}</div></section><section class="product-section"><div class="wrap"><div class="{grid}">{cards}</div><p class="shop-note">Choose your products here, then see shipping options and tax at checkout.</p></div></section>'
-        page('products/'+slug+'.html', v[0], v[2], body)
+        body = f'<section class="page-top"><div class="wrap"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a><span aria-hidden="true">/</span><a href="../products.html">Products</a><span aria-hidden="true">/</span><span>{v[0]}</span></nav><p class="eyebrow">{v[4]}</p><h1>{v[0]}</h1><p class="lead">{v[2]}</p>{category_nav("../", slug)}</div></section><section class="product-section"><div class="wrap"><div class="{grid}">{cards}</div><p class="shop-note">Choose your products here, then see shipping options and tax at checkout.</p></div></section>'
+        title, description = v[0], v[2]
+        if slug in ('cbd-salves', 'cbd-roll-ons'):
+            title = 'CBD Salves Made in Virginia' if slug == 'cbd-salves' else 'Virginia CBD Roll-On · 1,000 mg CBD'
+            description = 'Compare 2 oz (1,000 mg CBD) and 4 oz (2,000 mg CBD) salves handmade in Virginia. Shop online or find Blue Koi at Charlottesville markets.' if slug == 'cbd-salves' else 'Explore Blue Koi’s 10 mL CBD roll-on with 1,000 mg CBD, MCT and jojoba oils. Made in Virginia; shop online or find us in Charlottesville.'
+            body = body.replace('<h1>'+v[0]+'</h1>', '<h1>'+v[0]+', made in Virginia.</h1>')
+            body += local_product_note(BY_SLUG['cbd-salve' if slug == 'cbd-salves' else 'cbd-roll-on'])
+        page('products/'+slug+'.html', title, description, body)
 
 
 def details(title, content, opened=False):
@@ -183,7 +206,7 @@ def render_detail(p):
     storage = p['storage'] or ('Keep in a cool, dry place, away from direct sunlight.' if p['category'] in ['body-butters', 'lip-balms'] else '')
     care = ('<p>'+e(storage)+'</p>' if storage else '') + '<p>'+e(p['warning'])+'</p>'
     info += details('Storage & care', care)
-    lab = '<a class="lab-link" href="../assets/coa/R251119MS08MS126_COA.pdf" target="_blank" rel="noopener noreferrer">Read the CBD lab report (PDF)</a>' if p['category'] == 'cbd-salves' else ''
+    lab = '<div class="lab-note"><a class="lab-link" href="../assets/coa/R251119MS08MS126_COA.pdf" target="_blank" rel="noopener noreferrer">Read the CBD isolate ingredient report (PDF)</a><p class="small muted">This report covers an ingredient sample, not a finished Blue Koi product. <a href="../cbd-lab-reports.html">See report details and ask about your batch.</a></p></div>' if p['category'] == 'cbd-salves' else ''
     related = [x for x in LISTED_PRODUCTS if x['slug'] != slug and (x['category'] == p['category'] or (p['cbd'] and x['cbd']))][:3]
     cards = ''.join(product_card(x, '../', True) for x in related)
     variant_nav = f'<div class="variants"><p class="variants-label">{variant_label}</p><nav class="variant-list" aria-label="{variant_label}">{variants}</nav></div>' if len(selected) > 1 else ''
@@ -195,17 +218,22 @@ def render_detail(p):
             item = BY_SLUG[slug if oz == 8 else slug + '-4oz']
             sizes += f'<label class="size-option"><input type="radio" name="jar-size" value="{oz}" data-size-slug="{item["slug"]}"{" checked" if oz == 8 else ""}><span><strong>{oz} oz jar</strong><span data-option-price="{item["slug"]}">{e(item["price"])}</span><small data-option-stock="{item["slug"]}"></small></span></label>'
         sizes += '</div></fieldset><p class="size-upgrade" data-size-upgrade>Double the butter for $8 more</p><p class="small muted">Sizes refer to jar capacity, not net product weight.</p>'
-    body = f'''<section class="product-detail wrap" data-product-detail="{slug}"><div class="breadcrumbs"><a href="../products.html">Products</a><span aria-hidden="true">/</span><a href="{p['category']}.html">{category}</a></div>
+    body = f'''<section class="product-detail wrap" data-product-detail="{slug}"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a><span aria-hidden="true">/</span><a href="../products.html">Products</a><span aria-hidden="true">/</span><a href="{p['category']}.html">{category}</a><span aria-hidden="true">/</span><span>{e(p["name"])}</span></nav>
 <div class="detail-grid">{product_gallery(p)}
 <article class="detail-copy"><p class="eyebrow">{category}</p><h1>{e(p['name'])}</h1><div class="product-spec"><span class="price" data-product-price="{slug}">{e(p['price'])}</span><span class="muted" data-selected-size>{e(p['display_size'])}</span></div>
 <p class="lead">{e(p['description'])}</p>{highlights}
 {variant_nav}
 {sizes}
-<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>{'Sold out' if not p['stock_snapshot'] else 'Loading…'}</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
+<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>Loading…</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
 <div class="product-story"><h2>A closer look</h2><p class="body-copy">{e(p['body'])}</p></div><div class="details-list">{info}</div>{lab}</article></div></section>
 <section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
 <section class="related"><div class="wrap"><div class="section-head"><h2>{'More CBD favorites.' if p['cbd'] else 'Also in this collection.'}</h2><a class="text-link" href="{'../products.html' if p['cbd'] else p['category']+'.html'}">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
-    page('products/'+slug+'.html', p['name'], p['description'], body)
+    title, description = p['name'], p['description']
+    if p['cbd']:
+        body += local_product_note(p)
+        title = p['name'] + (' · 1,000 mg CBD' if slug == 'cbd-roll-on' else ' · Virginia Made')
+        description = f"{p['name']} ({p['display_size']}), handmade in Virginia by Blue Koi Botanicals. See ingredients and directions; buy online or visit our Charlottesville markets."
+    page('products/'+slug+'.html', title, description, body)
 
 
 def render_story():
@@ -217,7 +245,7 @@ def render_story():
 
 def render_contact():
     body = f'''<section class="wrap contact-layout"><div class="contact-intro"><p class="eyebrow">Contact</p><h1>Let’s talk.</h1><p class="lead">Not sure which scent to choose? Have a question about an order? Send us a note. We’re happy to help.</p>
-<dl class="contact-methods"><div class="contact-method"><dt>Email us</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div><div class="contact-method"><dt>Find us</dt><dd>Charlottesville, Virginia<br><a class="small" href="index.html#market-calendar">See our market calendar</a></dd></div></dl><p class="contact-note">For an order question, include your order number. If you’re asking about a particular product, its name and batch code are helpful.</p><p class="contact-note">For shop, wholesale, or collaboration inquiries, send us a note about what you have in mind.</p></div>
+<dl class="contact-methods"><div class="contact-method"><dt>Email us</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div><div class="contact-method"><dt>Find us</dt><dd>Charlottesville, Virginia<br><a class="small" href="cbd-charlottesville.html">Market locations, dates &amp; local buying options</a></dd></div></dl><p class="contact-note">For an order question, include your order number. If you’re asking about a particular product, its name and batch code are helpful.</p><p class="contact-note">For shop, wholesale, or collaboration inquiries, send us a note about what you have in mind.</p></div>
 <div class="contact-founder contact-founder-note"><p class="founder-label">Gwyn · Owner &amp; maker</p><h2>Hi, I’m Gwyn.</h2><p>I learned to make these products through my mom’s business in Colorado. Now I make Blue Koi’s body care in small batches here in Virginia, using the skills she taught me.</p><p>Whether we met at the market or you found us online, I’m glad you’re here.</p><a class="text-link" href="about.html">A little more about Blue Koi</a></div></section>
 <section class="section contact-market"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">Our Blue Koi table at a local market.</figcaption></figure><div class="market-copy"><p class="eyebrow">Around Charlottesville</p><h2>Meet us at the market.</h2><p class="lead">Come smell the oils, try a sample, and ask a few questions. Find your next visit on our market calendar.</p><div class="actions"><a class="button" href="index.html#market-calendar">See the market calendar</a></div></div></div></section>'''
     page('contact.html', 'Contact us', 'Contact us at Blue Koi Botanicals for product questions, orders, local markets, and wholesale inquiries. Based in Charlottesville, Virginia.', body, 'contact.html')
@@ -230,6 +258,8 @@ def stage():
     dist.mkdir()
     for f in ROOT.glob('*.html'):
         shutil.copy2(f, dist / f.name)
+    for filename in ['robots.txt', 'sitemap.xml']:
+        shutil.copy2(ROOT / filename, dist / filename)
     for directory in ['css', 'js', 'products']:
         shutil.copytree(ROOT / directory, dist / directory)
     (dist / 'assets').mkdir()
@@ -246,12 +276,17 @@ if __name__ == '__main__':
     render_products()
     for product in LISTED_PRODUCTS:
         render_detail(product)
-    for product in PRODUCTS:
-        if product.get("parent_slug", product["slug"]) != product["slug"]:
-            target = product["parent_slug"] + ".html?size=4"
-            (ROOT / "products" / (product["slug"] + ".html")).write_text(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={target}"><title>Choose your body butter size</title><link rel="canonical" href="{product["parent_slug"]}.html"></head><body><a href="{target}">Choose your body butter size</a></body></html>', encoding="utf-8")
+    aliases = {'magnesium-spray': 'rose-magnesium-spray', 'magnesium-facial-toner': 'lavender-magnesium-spray'}
+    aliases.update({p['slug']: p['parent_slug'] + '?size=4' for p in PRODUCTS if p.get('parent_slug', p['slug']) != p['slug']})
+    for source, destination in aliases.items():
+        parent, _, query = destination.partition('?')
+        target = absolute('products/' + parent + '.html') + ('?' + query if query else '')
+        canonical = absolute('products/' + parent + '.html')
+        (ROOT / 'products' / (source + '.html')).write_text(f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="0;url={e(target)}"><title>Product updated | Blue Koi Botanicals</title><link rel="canonical" href="{canonical}"></head><body><a href="{e(target)}">View the product</a></body></html>', encoding='utf-8')
     render_story()
     render_contact()
     render_commerce_pages(page, json.loads((ROOT / 'content/store.json').read_text(encoding='utf-8')))
+    render_search_pages(page, BY_SLUG, product_card, photo)
+    write_discovery()
     stage()
     print(f'Built {len(list(ROOT.glob("*.html"))) + len(list((ROOT / "products").glob("*.html")))} static pages and staged public assets.')

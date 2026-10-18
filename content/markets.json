@@ -16,7 +16,9 @@
       "excluded_dates": [
         "2026-11-07",
         "2026-11-14"
-      ]
+      ],
+      "address": "522 2nd St SE, Charlottesville, VA 22902",
+      "venue_url": "https://www.ixartpark.org/"
     },
     {
       "id": "holiday",
@@ -27,7 +29,9 @@
       "end_date": "2026-12-19",
       "start_time": "09:00",
       "end_time": "13:00",
-      "excluded_dates": []
+      "excluded_dates": [],
+      "address": "100 E Water Street, Charlottesville, VA 22902",
+      "venue_url": "https://www.charlottesville.gov/619/Charlottesville-Farmers-Markets"
     }
   ]
 }
