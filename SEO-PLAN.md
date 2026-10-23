@@ -150,4 +150,4 @@ npm.cmd run deploy
 5. Google Business Profile Help, [Guidelines for representing your business](https://support.google.com/business/answer/3038177).
 6. Google Search Central, [Spam policies](https://developers.google.com/search/docs/essentials/spam-policies).
 7. [IX Arts Foundation](https://www.ixartpark.org/) and [City of Charlottesville market information](https://www.charlottesville.gov/619/Charlottesville-Farmers-Markets), used for venue addresses. Blue Koi attendance comes from the uploaded `content/markets.json`.
-8. Uploaded product data, production site configuration, and `assets/coa/R251119MS08MS126_COA.pdf`, used for Blue Koi-specific facts.
+8. Uploaded product data, production site configuration, and the finished-product COAs in `assets/coa/`, used for Blue Koi-specific facts.

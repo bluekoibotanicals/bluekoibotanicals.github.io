@@ -210,7 +210,11 @@ def render_detail(p):
     storage = p['storage'] or ('Keep in a cool, dry place, away from direct sunlight.' if p['category'] in ['body-butters', 'lip-balms'] else '')
     care = ('<p>'+e(storage)+'</p>' if storage else '') + '<p>'+e(p['warning'])+'</p>'
     info += details('Storage & care', care)
-    lab = '<div class="lab-note"><a class="lab-link" href="../assets/coa/R251119MS08MS126_COA.pdf" target="_blank" rel="noopener noreferrer">Read the CBD isolate ingredient report (PDF)</a><p class="small muted">This report covers an ingredient sample, not a finished Blue Koi product. <a href="../cbd-lab-reports.html">See report details and ask about your batch.</a></p></div>' if p['category'] == 'cbd-salves' else ''
+    coa = {
+        'cbd-salve': ('CBD Salve', 'cbd-salve-coa.pdf'),
+        'cbd-roll-on': ('CBD Roll-On', 'cbd-roll-on-coa.pdf'),
+    }.get(slug)
+    lab = (f'<div class="lab-note"><a class="lab-link" href="../assets/coa/{coa[1]}" target="_blank" rel="noopener noreferrer">Read the {coa[0]} finished-product COA (PDF)</a><p class="small muted">This report applies to the finished {coa[0]} sample tested by Green Analytics. <a href="../cbd-lab-reports.html">View both product COAs.</a></p></div>' if coa else '')
     related = [x for x in LISTED_PRODUCTS if x['slug'] != slug and (x['category'] == p['category'] or (p['cbd'] and x['cbd']))][:3]
     cards = ''.join(product_card(x, '../', True) for x in related)
     variant_nav = f'<div class="variants"><p class="variants-label">{variant_label}</p><nav class="variant-list" aria-label="{variant_label}">{variants}</nav></div>' if len(selected) > 1 else ''

@@ -77,5 +77,8 @@ test('all sitemap entries have crawlable static content, matching metadata and u
   assert.ok(local.includes('522 2nd St SE'));
   assert.ok(local.includes('100 E Water Street'));
   assert.ok(local.includes('Not attending'));
-  assert.ok(read('cbd-lab-reports.html').includes('not a test of a finished Blue Koi salve or roll-on'));
+  const reports = read('cbd-lab-reports.html');
+  assert.ok(reports.includes('cbd-salve-coa.pdf'));
+  assert.ok(reports.includes('cbd-roll-on-coa.pdf'));
+  assert.ok(!reports.includes('R251119MS08MS126_COA.pdf'));
 });
