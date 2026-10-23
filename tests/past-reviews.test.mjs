@@ -44,6 +44,18 @@ test('past reviews require correct product and token, allow one submission, and 
     assert.equal((await f.request('/api/reviews?product='+lip)).data.count,0);
   }finally{f.close();}
 });
+test('published reviews are shared within a product family and retained from an archived variant',async()=>{
+  const f=setup();try {
+    await f.env.DB.prepare("INSERT INTO orders(id,quote_id,session_hash,status,data,created_at,updated_at) VALUES('historical-order','historical-quote','historical-session','paid','{}',1,1)").run();
+    await f.env.DB.prepare("INSERT INTO reviews(id,order_id,slug,rating,author,body,status,created_at) VALUES(?,?,?,?,?,?,?,?)").bind('archived-salve-review','historical-order','cbd-salve-4oz',5,'Salve Buyer','The retired size was a favorite for our household.','published',2).run();
+    await f.env.DB.prepare("INSERT INTO reviews(id,order_id,slug,rating,author,body,status,created_at) VALUES(?,?,?,?,?,?,?,?)").bind('butter-review','historical-order','lavender-whipped-body-butter',4,'Butter Buyer','A lovely texture and a calming lavender scent.','published',3).run();
+    const salve=(await f.request('/api/reviews?product=cbd-salve')).data;
+    assert.equal(salve.count,1);assert.equal(salve.reviews[0].author,'Salve Buyer');
+    const butter=(await f.request('/api/reviews?product=eucalyptus-whipped-body-butter')).data;
+    assert.equal(butter.count,1);assert.equal(butter.reviews[0].author,'Butter Buyer');
+    assert.equal((await f.request('/api/reviews?product=cbd-salve-4oz')).status,404);
+  }finally{f.close();}
+});
 test('invitation admin permissions, purchase attestation, dates and product validation are enforced',async()=>{
   const f=setup();try {
     assert.equal((await f.request(endpoint)).status,401);assert.equal((await f.request(endpoint,payload)).status,401);

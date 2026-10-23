@@ -86,7 +86,10 @@ async function productsUI(){
 }
 
 function renderCart(data){
-  const cart=getCart(),items=cart.map(l=>({...data.products.find(p=>p.slug===l.slug),...l})).filter(p=>p.name),valid=items.length===cart.length && items.every(p=>p.online_enabled && p.stock>=p.quantity);
+  const savedCart=getCart(),cart=savedCart.filter(line=>data.products.some(p=>p.slug===line.slug));
+  // Retired products should not leave an unusable line or misleading bag count behind.
+  if(cart.length!==savedCart.length){saveCart(cart);countBag();}
+  const items=cart.map(l=>({...data.products.find(p=>p.slug===l.slug),...l})).filter(p=>p.name),valid=items.length===cart.length && items.every(p=>p.online_enabled && p.stock>=p.quantity);
   $('#cart-items').innerHTML=items.length ? items.map(p=>`<article class="cart-line">${p.image?`<img class="cart-product-image" src="${pageURL(p.image)}" alt="${esc(p.name+' '+p.display_size)}" width="72" height="90">`:''}<div><h3><a href="${pageURL(`products/${p.parent_slug || p.slug}.html${p.jar_capacity_oz===4?'?size=4':''}`)}">${esc(p.name)}</a></h3><p class="small muted">${esc(p.display_size)}</p>${p.stock<p.quantity || !p.online_enabled?'<p class="stock-note sold-out">Update or remove this unavailable quantity.</p>':''}</div><span class="cart-price">${currency(p.price_cents*p.quantity)}</span><label class="field">Quantity<input type="number" data-cart-quantity="${p.slug}" value="${p.quantity}" min="1" max="${Math.min(12,p.stock)||1}" step="1"></label><button class="remove" type="button" data-cart-remove="${p.slug}">Remove</button></article>`).join('') : `<div class="empty-bag"><h2>A little something for you?</h2><p>Your bag is empty. Explore our small-batch body care.</p><a class="button" href="${pageURL('products.html')}">Browse the collection</a></div>`;
   const subtotal=items.reduce((n,p)=>n+p.price_cents*p.quantity,0);$('#cart-summary').innerHTML=totalsHTML({subtotal},false);
   $('#checkout-link').hidden=!items.length || !valid;

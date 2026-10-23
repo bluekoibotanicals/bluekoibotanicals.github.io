@@ -1,4 +1,4 @@
-import {store, products, StoreError, fail, now, uuid, digest, hmac, safeEqual, clean, address, normalizeCart, makeLines, checkDestination, totals, publicProduct, ready, money, promotionalRates} from './core.mjs';
+import {store, products, activeProducts, StoreError, fail, now, uuid, digest, hmac, safeEqual, clean, address, normalizeCart, makeLines, checkDestination, totals, publicProduct, ready, money, promotionalRates} from './core.mjs';
 import {catalog, shipping, square, squareAddress, squareOrder, sendEmail} from './providers.mjs';
 import {ensureLabel, maintainLabels} from './labels.mjs';
 import {createPastInvitation,listPastInvitations,pastInvitationAction,retryPastInvitations} from './past-reviews.mjs';
@@ -206,7 +206,7 @@ async function route(req,env,ctx,session) {
     const pending=await first(env,'SELECT id FROM orders WHERE session_hash=? AND status=\'processing\' LIMIT 1',session);
     if (pending) fail(`Order ${pending.id} is still being checked. Open your order confirmation page or contact us before placing another order.`,409,'PAYMENT_PENDING');
     const b=await body(req),a=address(b.address),cart=normalizeCart(b.cart);
-    checkDestination(cart.map(l=>products.find(p=>p.slug===l.slug)),a);
+    checkDestination(cart.map(l=>activeProducts.find(p=>p.slug===l.slug)),a);
     const requestedCode=discountCode(b.discount_code);
     const fingerprint=await digest(JSON.stringify({cart,a,discount_code:requestedCode,shipping_policy:checkoutPolicy()}));
     const cached=await first(env,'SELECT * FROM quotes WHERE session_hash=? AND fingerprint=? AND expires_at>? AND status=\'open\' AND id NOT IN (SELECT quote_id FROM orders) ORDER BY created_at DESC LIMIT 1',session,fingerprint,now()+60);
@@ -234,9 +234,12 @@ async function route(req,env,ctx,session) {
     ctx.waitUntil(afterPayment(env,o).catch(()=>{})); return json(publicOrder(o));
   }
   if (p==='/api/reviews' && req.method==='GET') {
-    const slug=u.searchParams.get('product'); if (!products.some(p=>p.slug===slug)) fail('Product not found.',404);
-    const product=products.find(p=>p.slug===slug), parent=product.parent_slug || slug;
-    const slugs=products.filter(p=>(p.parent_slug || p.slug)===parent).map(p=>p.slug);
+    const slug=u.searchParams.get('product'); if (!activeProducts.some(p=>p.slug===slug)) fail('Product not found.',404);
+    const product=activeProducts.find(p=>p.slug===slug);
+    // A review group deliberately spans scent and size variants. Archived records
+    // remain eligible here so retiring a variant never discards its reviews.
+    const reviewGroup=product.review_group || product.category;
+    const slugs=products.filter(p=>(p.review_group || p.category)===reviewGroup).map(p=>p.slug);
     const placeholders=slugs.map(()=>'?').join(',');
     const reviews=await all(env,`SELECT rating,author,body,created_at FROM all_product_reviews WHERE slug IN (${placeholders}) AND status='published' ORDER BY created_at DESC LIMIT 100`,...slugs);
     const stats=await first(env,`SELECT COUNT(*) AS count,AVG(rating) AS average FROM all_product_reviews WHERE slug IN (${placeholders}) AND status='published'`,...slugs);
@@ -259,13 +262,13 @@ async function route(req,env,ctx,session) {
   }
   if (p.startsWith('/api/admin/')) {
     await limit(env,req,'admin',100); admin(req,env);
-    if(p==='/api/admin/past-review-invitations' && req.method==='GET')return json({invitations:await listPastInvitations(env),products:products.map(p=>({slug:p.slug,name:p.name,size:p.display_size}))});
+    if(p==='/api/admin/past-review-invitations' && req.method==='GET')return json({invitations:await listPastInvitations(env),products:activeProducts.map(p=>({slug:p.slug,name:p.name,size:p.display_size}))});
     if(p==='/api/admin/past-review-invitations' && req.method==='POST') {
       const b=await body(req);
       if(b.action==='create') {await limit(env,req,'past-invitations',30);return json(await createPastInvitation(env,b),201);}
       return json(await pastInvitationAction(env,b));
     }
-    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:(await catalog(env)).filter(p=>p.square_variation_id).length,total:products.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
+    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:(await catalog(env)).filter(p=>p.square_variation_id).length,total:activeProducts.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
     if (p==='/api/admin/label-check' && req.method==='POST') {
       const b=await body(req),o=await first(env,'SELECT * FROM orders WHERE id=?',clean(b.id,50));
       if(!o)fail('Order not found.',404);

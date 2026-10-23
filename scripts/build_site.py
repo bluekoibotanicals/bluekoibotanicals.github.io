@@ -13,11 +13,15 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCTS = json.loads((ROOT / 'content/products.json').read_text(encoding='utf-8'))
 STICKERS = json.loads((ROOT / 'content/stickers.json').read_text(encoding='utf-8'))
 BY_SLUG = {p['slug']: p for p in PRODUCTS}
-LISTED_PRODUCTS = [p for p in PRODUCTS if p.get('parent_slug', p['slug']) == p['slug']]
+# Archived records remain in products.json as an operational artifact (including
+# Square mappings and historical review slugs), but never become a storefront item.
+ACTIVE_PRODUCTS = [p for p in PRODUCTS if not p.get('archived')]
+ARCHIVED_PRODUCTS = [p for p in PRODUCTS if p.get('archived')]
+LISTED_PRODUCTS = [p for p in ACTIVE_PRODUCTS if p.get('parent_slug', p['slug']) == p['slug']]
 SHOP = 'https://blue-koi-botanicals-llc.square.site'
 EMAIL = 'blue.koi.botanicals@gmail.com'
 CATEGORIES = {
-    'cbd-salves': ('CBD Salves', 'Rich care. A refreshing finish.', 'Take a moment to work a little care into your day. Our rich CBD salves soften with the warmth of your hands, combining coconut oil, shea butter, and beeswax with cooling menthol, eucalyptus, and camphor. Choose a compact 2 oz jar or make room for more of your favorite with 4 oz.', 'category-cbd-salves', '2 oz and 4 oz'),
+    'cbd-salves': ('CBD Salve', 'Rich care. A refreshing finish.', 'Take a moment to work a little care into your day. Our rich CBD salve softens with the warmth of your hands, combining coconut oil, shea butter, and beeswax with cooling menthol, eucalyptus, and camphor. Available in a compact 2 oz jar.', 'category-cbd-salves', '2 oz · 1,000 mg CBD'),
     'cbd-roll-ons': ('CBD Roll-On', 'Your cooling ritual, ready to go.', 'Silky oils, a refreshing feel, and a roller that goes where you do. Our 10 mL CBD Roll-On combines 1,000 mg of CBD isolate with MCT and jojoba oils, skin-conditioning bisabolol and vitamin E, and a light eucalyptus-lavender scent. Glide on a little care without reaching for a jar.', 'cbd-roll-on', '10 mL · 1,000 mg CBD'),
     'body-oils': ('Body Oils', 'Turn the last minute of your shower into your favorite.', 'A few drops, a soft sheen, and a scent you look forward to wearing. Our meadowfoam and jojoba body oils glide over damp skin, making everyday moisture feel a little more indulgent. Find your favorite among lush florals, fresh eucalyptus, and warm cedarwood vanilla.', 'category-body-oils', 'Four scents · 4 fl oz'),
     'magnesium-sprays': ('Magnesium Body Mists', 'A small spritz. A moment for yourself.', 'Make a little room for ritual with magnesium chloride, botanical flower waters, and aloe. Choose softly herbal Lavender for your evening essentials or delicate Rose for a fresh floral moment. These water-based body mists have a distinctive mineral feel; start with a small amount and follow the care directions.', 'category-magnesium-sprays', 'Two scents · 4 fl oz'),
@@ -26,7 +30,7 @@ CATEGORIES = {
 }
 PHOTOS = {
     'cbd-roll-on': ('cbd-roll-on.jpeg', 'Blue Koi CBD Roll-On, 10 mL with 1,000 mg CBD, in an amber bottle with a black cap', '1122', '1402'),
-    'category-cbd-salves': ('category-cbd-salves.jpeg', 'Blue Koi CBD Salves in 2 oz and 4 oz jars', '1122', '1402'),
+    'category-cbd-salves': ('cbd-salve.jpeg', 'Blue Koi CBD Salve, 2 oz, with 1,000 mg CBD', '1122', '1402'),
     'category-body-oils': ('category-body-oils.jpeg', 'Blue Koi body oils in Jasmine, Eucalyptus, Cedarwood Vanilla, and Lavender', '1122', '1402'),
     'category-magnesium-sprays': ('category-magnesium-sprays.jpeg', 'Blue Koi Rose and Lavender Magnesium Body Mists', '1122', '1402'),
     'category-lip-balms': ('category-lip-balms.jpeg', 'Blue Koi Lavender Spearmint and Honey Lavender Lip Balms', '1122', '1402'),
@@ -146,7 +150,7 @@ def render_home():
 <p class="hero-note">Woman-owned &nbsp;·&nbsp; Made in small batches</p></div>
 <figure class="hero-photo">{photo('category-body-oils', eager=True, extra='category-shot')}<figcaption class="photo-caption"><span>Four scents. One simple oil blend.</span>Meadowfoam + jojoba</figcaption></figure></div></section>
 <section class="section section-border"><div class="wrap"><div class="section-head"><div><p class="eyebrow">The collection</p><h2>What we make.</h2></div><a class="text-link" href="products.html">Browse all products</a></div><div class="collection-grid">{cats}</div></div></section>
-<section class="section search-wash"><div class="wrap search-content"><p class="eyebrow">From Virginia, with care</p><h2>CBD salves &amp; roll-on.<br>Find your everyday format.</h2><p class="lead">Choose a 2 oz CBD salve with 1,000 mg CBD, a 4 oz salve with 2,000 mg CBD, or a 10 mL CBD Roll-On with 1,000 mg CBD. Read the ingredients, compare textures, and find us at a scheduled Charlottesville market.</p><div class="actions"><a class="button" href="products/cbd-salves.html">Explore CBD salves</a><a class="text-link" href="products/cbd-roll-on.html">Meet the CBD roll-on</a><a class="text-link" href="cbd-charlottesville.html">Find us in Charlottesville</a></div><p class="small"><a href="cbd-salve-vs-roll-on.html">Not sure which format to choose? Compare salve and roll-on.</a></p></div></section>
+<section class="section search-wash"><div class="wrap search-content"><p class="eyebrow">From Virginia, with care</p><h2>CBD salve &amp; roll-on.<br>Find your everyday format.</h2><p class="lead">Choose a 2 oz CBD salve with 1,000 mg CBD or a 10 mL CBD Roll-On with 1,000 mg CBD. Read the ingredients, compare textures, and find us at a scheduled Charlottesville market.</p><div class="actions"><a class="button" href="products/cbd-salves.html">Explore CBD salve</a><a class="text-link" href="products/cbd-roll-on.html">Meet the CBD roll-on</a><a class="text-link" href="cbd-charlottesville.html">Find us in Charlottesville</a></div><p class="small"><a href="cbd-salve-vs-roll-on.html">Not sure which format to choose? Compare salve and roll-on.</a></p></div></section>
 <section class="section roll-on-section"><div class="wrap roll-on-feature"><a class="roll-on-photo" href="products/cbd-roll-on.html">{photo('cbd-roll-on', extra='product-shot')}</a><div><p class="eyebrow">Meet your new everyday companion</p><h2>A little care.<br>Ready to roll.</h2><p class="lead">Cooling menthol. Silky oils. A fresh hint of eucalyptus and lavender. Our new CBD Roll-On puts your favorite small moment of care in a bottle that goes where you do.</p><p>1,000 mg CBD · 10 mL · <span data-product-price="cbd-roll-on">$26</span></p><a class="button" href="products/cbd-roll-on.html">Meet the CBD Roll-On</a></div></div></section>
 <section class="section jasmine-section"><div class="wrap"><div class="section-head"><div><p class="eyebrow">Jasmine &amp; ylang ylang</p><h2>Oil or butter?</h2></div><p>A few drops of oil on damp skin, or a small scoop of butter for the dry spots. The same floral scent, in two different textures.</p></div><div class="feature-grid">{features}</div></div></section>
 <section class="section" id="market-calendar"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">A day at the market with Blue Koi.</figcaption></figure><div class="market-copy"><p class="eyebrow">A small Virginia business</p><h2>Come say hello.</h2><p class="lead">There’s something nice about trying a scent in person and talking to the person who made it. We bring Blue Koi to markets around Charlottesville.</p><p><a class="text-link" href="cbd-charlottesville.html">Market locations &amp; visiting details</a></p></div>{render_market_calendar()}</div></section>'''
@@ -167,8 +171,8 @@ def render_products():
         body = f'<section class="page-top"><div class="wrap"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a><span aria-hidden="true">/</span><a href="../products.html">Products</a><span aria-hidden="true">/</span><span>{v[0]}</span></nav><p class="eyebrow">{v[4]}</p><h1>{v[0]}</h1><p class="lead">{v[2]}</p>{category_nav("../", slug)}</div></section><section class="product-section"><div class="wrap"><div class="{grid}">{cards}</div><p class="shop-note">Choose your products here, then see shipping options and tax at checkout.</p></div></section>'
         title, description = v[0], v[2]
         if slug in ('cbd-salves', 'cbd-roll-ons'):
-            title = 'CBD Salves Made in Virginia' if slug == 'cbd-salves' else 'Virginia CBD Roll-On · 1,000 mg CBD'
-            description = 'Compare 2 oz (1,000 mg CBD) and 4 oz (2,000 mg CBD) salves handmade in Virginia. Shop online or find Blue Koi at Charlottesville markets.' if slug == 'cbd-salves' else 'Explore Blue Koi’s 10 mL CBD roll-on with 1,000 mg CBD, MCT and jojoba oils. Made in Virginia; shop online or find us in Charlottesville.'
+            title = 'CBD Salve Made in Virginia' if slug == 'cbd-salves' else 'Virginia CBD Roll-On · 1,000 mg CBD'
+            description = 'Explore Blue Koi’s 2 oz CBD salve with 1,000 mg CBD, handmade in Virginia. Shop online or find Blue Koi at Charlottesville markets.' if slug == 'cbd-salves' else 'Explore Blue Koi’s 10 mL CBD roll-on with 1,000 mg CBD, MCT and jojoba oils. Made in Virginia; shop online or find us in Charlottesville.'
             body = body.replace('<h1>'+v[0]+'</h1>', '<h1>'+v[0]+', made in Virginia.</h1>')
             body += local_product_note(BY_SLUG['cbd-salve' if slug == 'cbd-salves' else 'cbd-roll-on'])
         page('products/'+slug+'.html', title, description, body)
@@ -263,10 +267,13 @@ def stage():
     for directory in ['css', 'js', 'products']:
         shutil.copytree(ROOT / directory, dist / directory)
     (dist / 'assets').mkdir()
+    archived_photos = {PHOTOS[product_photo(p)][0] for p in ARCHIVED_PRODUCTS}
+    archived_stickers = {filename for p in ARCHIVED_PRODUCTS for filename in STICKERS.get(p['slug'], [])}
     for directory in ['photos', 'coa', 'stickers']:
-        shutil.copytree(ROOT / 'assets' / directory, dist / 'assets' / directory)
+        excluded = archived_photos if directory == 'photos' else archived_stickers if directory == 'stickers' else set()
+        shutil.copytree(ROOT / 'assets' / directory, dist / 'assets' / directory, ignore=shutil.ignore_patterns(*excluded) if excluded else None)
     shutil.copy2(ROOT / 'assets/logo.png', dist / 'assets/logo.png')
-    public = [{**{k:p[k] for k in ('slug','name','display_size','price_cents','stock_snapshot','online_enabled','cbd')}, 'parent_slug':p.get('parent_slug'), 'jar_capacity_oz':p.get('jar_capacity_oz'), 'image':'assets/photos/'+PHOTOS[product_photo(p)][0]} for p in PRODUCTS]
+    public = [{**{k:p[k] for k in ('slug','name','display_size','price_cents','stock_snapshot','online_enabled','cbd')}, 'parent_slug':p.get('parent_slug'), 'jar_capacity_oz':p.get('jar_capacity_oz'), 'image':'assets/photos/'+PHOTOS[product_photo(p)][0]} for p in ACTIVE_PRODUCTS]
     (dist / 'catalog.json').write_text(json.dumps(public), encoding='utf-8')
     (ROOT / 'catalog.json').write_text(json.dumps(public), encoding='utf-8')
 
@@ -277,6 +284,7 @@ if __name__ == '__main__':
     for product in LISTED_PRODUCTS:
         render_detail(product)
     aliases = {'magnesium-spray': 'rose-magnesium-spray', 'magnesium-facial-toner': 'lavender-magnesium-spray'}
+    aliases.update({p['slug']: p['redirect_to'] for p in ARCHIVED_PRODUCTS if p.get('redirect_to')})
     aliases.update({p['slug']: p['parent_slug'] + '?size=4' for p in PRODUCTS if p.get('parent_slug', p['slug']) != p['slug']})
     for source, destination in aliases.items():
         parent, _, query = destination.partition('?')

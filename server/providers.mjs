@@ -1,5 +1,5 @@
 import {flattenVariations, variationCandidates} from './catalog-matching.mjs';
-import {products, store, StoreError, fail, money, parcels, uuid, clean, checkDestination} from './core.mjs';
+import {activeProducts, store, StoreError, fail, money, parcels, uuid, clean, checkDestination} from './core.mjs';
 const transport = env => env.FETCH || fetch;
 export async function square(env, path, body, method = body ? 'POST' : 'GET') {
   const host = env.SQUARE_ENVIRONMENT === 'production' ? 'https://connect.squareup.com' : 'https://connect.squareupsandbox.com';
@@ -18,7 +18,7 @@ export async function square(env, path, body, method = body ? 'POST' : 'GET') {
 // is intentionally never a fallback. Cache only a complete, unambiguous catalog response.
 const variationCache = new Map();
 async function mappedProducts(env) {
-  if (!products.some(p=>p.square_variation_name || p.square_match_by_name)) return products;
+  if (!activeProducts.some(p=>p.square_variation_name || p.square_match_by_name)) return activeProducts;
   const key = [env.SQUARE_ENVIRONMENT, env.SQUARE_LOCATION_ID, env.SQUARE_ACCESS_TOKEN].join(':');
   let cached = variationCache.get(key);
   if (!cached || cached.expires < Date.now() || env.FETCH) {
@@ -31,14 +31,14 @@ async function mappedProducts(env) {
     if (variationCache.size >= 10) variationCache.clear();
     variationCache.set(key,cached);
   }
-  return products.map(p=>{
+  return activeProducts.map(p=>{
     if (!p.square_variation_name && !p.square_match_by_name) return p;
     const matches = variationCandidates(p,cached.variations);
     return {...p, square_variation_id:matches.length===1 ? matches[0].variation_id : null};
   });
 }
 export async function catalog(env) {
-  if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID || env.STORE_MODE === 'preview') return products.map(p => ({...p,stock:p.stock_snapshot}));
+  if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID || env.STORE_MODE === 'preview') return activeProducts.map(p => ({...p,stock:p.stock_snapshot}));
   const resolved = await mappedProducts(env);
   const ids = resolved.map(p => p.square_variation_id).filter(Boolean);
   if (!ids.length) fail('The product catalog is being connected. Please contact us to order.',503,'CATALOG_SETUP');

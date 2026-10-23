@@ -24,11 +24,12 @@ export function address(input = {}, billing = false) {
   return a;
 }
 export const US_STATES = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
+export const activeProducts = products.filter(p => !p.archived);
 export function normalizeCart(cart) {
   if (!Array.isArray(cart) || !cart.length || cart.length > store.max_items_per_order) fail('Your bag is empty or exceeds the order limit.');
   const combined = new Map();
   for (const line of cart) {
-    if (!line || !products.some(p => p.slug === line.slug) || !Number.isInteger(line.quantity) || line.quantity < 1) fail('An item or quantity in your bag is invalid.');
+    if (!line || !activeProducts.some(p => p.slug === line.slug) || !Number.isInteger(line.quantity) || line.quantity < 1) fail('An item or quantity in your bag is invalid.');
     combined.set(line.slug, (combined.get(line.slug) || 0) + line.quantity);
   }
   if ([...combined.values()].reduce((a,b) => a+b, 0) > store.max_items_per_order) fail(`Please contact us for orders larger than ${store.max_items_per_order} items.`);

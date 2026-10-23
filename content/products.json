@@ -31,7 +31,11 @@
     "square_variation_id": "FVKE6CBCYDFQDCLDHNQPHR5T",
     "customs_tariff_number": "",
     "origin_country": "US",
-    "online_enabled": true,
+    "online_enabled": false,
+    "archived": true,
+    "archived_reason": "Retired from the storefront because the second size created too much operational overhead. Preserve this record, its Square mapping, and its historical reviews so it can be restored later.",
+    "redirect_to": "cbd-salve",
+    "review_group": "cbd-salves",
     "highlights": [
       "2,000 mg CBD isolate in a generous 4 oz jar",
       "Same formula and CBD concentration as the 2 oz size",
@@ -71,6 +75,7 @@
     "customs_tariff_number": "",
     "origin_country": "US",
     "online_enabled": true,
+    "review_group": "cbd-salves",
     "highlights": [
       "1,000 mg CBD isolate in a compact 2 oz jar",
       "Rich balm texture with a cooling finish",
