@@ -73,6 +73,8 @@ def photo(key, prefix='', eager=False, extra=''):
     return f'<div class="photo photo-{key} {extra}"><img src="{prefix}assets/photos/{name}" alt="{e(alt)}" width="{width}" height="{height}" loading="{loading}" decoding="async"{priority}></div>'
 
 
+COMMERCE_PAUSED = False  # Set to True to pause storefront checkout.
+
 def nav(prefix, active):
     items = [('index.html', 'Home'), ('products.html', 'Products'), ('cbd-charlottesville.html', 'Find us locally'), ('about.html', 'Our story'), ('contact.html', 'Contact')]
     links = ''.join(f'<li><a href="{prefix}{url}"'+(' aria-current="page"' if active == url else '')+f'>{label}</a></li>' for url, label in items)
@@ -80,14 +82,14 @@ def nav(prefix, active):
 <header class="site-header"><nav class="nav wrap" aria-label="Main navigation">
 <a class="brand" href="{prefix}index.html" aria-label="Blue Koi Botanicals home"><img src="{prefix}assets/logo.png" alt="" width="68" height="68"><span class="brand-name">Blue Koi<small>Botanicals</small></span></a>
 <button type="button" class="nav-toggle" aria-expanded="false" aria-controls="main-navigation">Menu</button>
-<ul id="main-navigation" class="nav-links">{links}<li class="shop-nav"><a class="button" href="{prefix}cart.html">Your bag <span data-cart-count aria-label="items in bag">0</span></a></li></ul>
-</nav></header>'''
+<ul id="main-navigation" class="nav-links">{links}{"" if COMMERCE_PAUSED else f'<li class="shop-nav"><a class="button" href="{prefix}cart.html">Your bag <span data-cart-count aria-label="items in bag">0</span></a></li>'}</ul>
+</nav></header>{f'<aside class="maintenance-banner" aria-label="Store maintenance"><strong>Online checkout is temporarily paused.</strong> Our website is undergoing maintenance while we find a new payment platform. We hope to be back up and running by the end of November. In the meantime, <a href="mailto:{EMAIL}?subject=Blue%20Koi%20order">email us to place an order</a>.</aside>' if COMMERCE_PAUSED else ""}'''
 
 
 def footer(prefix):
     return f'''<footer class="site-footer"><div class="wrap">
 <div class="footer-top"><div><a class="footer-brand" href="{prefix}index.html">Blue Koi Botanicals</a><p>Body care made by hand in Virginia.<br>Thanks for supporting a small business.</p></div>
-<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}cbd-charlottesville.html">Find us in Charlottesville</a></li><li><a href="{prefix}cbd-salve-vs-roll-on.html">Salve or roll-on?</a></li><li><a href="{prefix}cbd-lab-reports.html">CBD lab report</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact us</a></li><li><a href="{prefix}shipping-returns.html">Shipping &amp; returns</a></li><li><a href="{prefix}privacy.html">Privacy</a></li></ul>
+<ul class="footer-links"><li><a href="{prefix}products.html">Our products</a></li><li><a href="{prefix}cbd-charlottesville.html">Find us in Charlottesville</a></li><li><a href="{prefix}cbd-salve-vs-roll-on.html">Salve or roll-on?</a></li><li><a href="{prefix}cbd-lab-reports.html">CBD lab report</a></li><li><a href="{prefix}about.html">Our story</a></li><li><a href="{prefix}contact.html">Contact us</a></li><li><a href="{prefix}shipping-returns.html">Shipping &amp; returns</a></li><li><a href="{prefix}terms.html">Terms &amp; cancellations</a></li><li><a href="{prefix}privacy.html">Privacy</a></li></ul>
 <div><div class="footer-label">Have a question?</div><a class="footer-email" href="mailto:{EMAIL}">{EMAIL}</a><p>Based in Charlottesville, Virginia.</p></div></div>
 <div class="footer-bottom"><p>© 2026 Blue Koi Botanicals LLC</p><p>For external use only. Statements on this site have not been evaluated by the FDA. Products are not intended to diagnose, treat, cure, or prevent disease.</p></div>
 </div></footer>'''
@@ -107,6 +109,12 @@ def page(path, title, description, body, active='products.html'):
     elif path in {'cbd-charlottesville.html', 'cbd-salve-vs-roll-on.html', 'cbd-lab-reports.html'}:
         label = {'cbd-charlottesville.html': 'Find us in Charlottesville', 'cbd-salve-vs-roll-on.html': 'CBD salve vs. roll-on', 'cbd-lab-reports.html': 'CBD lab reports'}[path]
         breadcrumbs = [('Home', 'index.html'), (label, path)]
+    if COMMERCE_PAUSED:
+        if path in {'cart.html', 'checkout.html'}:
+            body = f'''<section class="page-top wrap narrow section-bottom"><p class="eyebrow">Blue Koi Botanicals</p><h1>Online checkout is temporarily paused.</h1><p class="lead">We are updating our payment platform and hope to have online checkout running again by the end of November. In the meantime, we can fulfill orders by email.</p><a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a></section>'''
+        body = body.replace('Shop online or find our table', 'Browse our collection or find our table').replace('Orders process in 1–3 days. Choose your delivery service and see current shipping rates at checkout.', 'Please email us to place an order.').replace('Choose your products here, then see shipping options and tax at checkout.', 'Please email us to place an order.')
+    if path == 'checkout.html':
+        body += f'''<section class="wrap checkout-cards" aria-label="Card brands"><p>Card brands</p><div class="card-brands"><img src="{prefix}assets/cards/visa.svg" alt="Visa"><img src="{prefix}assets/cards/mastercard.svg" alt="Mastercard"><img src="{prefix}assets/cards/americanexpress.svg" alt="American Express"><img src="{prefix}assets/cards/discover.svg" alt="Discover"></div><p class="small muted">Online card payments are currently unavailable while checkout is paused.</p></section>''' if COMMERCE_PAUSED else f'''<section class="wrap checkout-cards" aria-label="Card brands"><p>Card brands</p><div class="card-brands"><img src="{prefix}assets/cards/visa.svg" alt="Visa"><img src="{prefix}assets/cards/mastercard.svg" alt="Mastercard"><img src="{prefix}assets/cards/americanexpress.svg" alt="American Express"><img src="{prefix}assets/cards/discover.svg" alt="Discover"></div></section>'''
     metadata = page_head(path, title, description, image=image, product=product, breadcrumbs=breadcrumbs, collection=bool(category))
     doc = f'''<!DOCTYPE html>
 <html lang="en"><head>
@@ -232,7 +240,7 @@ def render_detail(p):
 <p class="lead">{e(p['description'])}</p>{highlights}
 {variant_nav}
 {sizes}
-<div class="buy-row"><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>Loading…</button><a class="text-link" href="../contact.html">Ask us a question</a></div><p class="stock-note" data-stock="{slug}"></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
+<div class="buy-row" {"hidden" if COMMERCE_PAUSED else ""}><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>Loading…</button><a class="text-link" href="../contact.html">Ask us a question</a></div>{f'<a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a>' if COMMERCE_PAUSED else ""}<p class="stock-note" data-stock="{slug}" {"hidden" if COMMERCE_PAUSED else ""}></p><p class="small">Ships in 1–3 days. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
 <div class="product-story"><h2>A closer look</h2><p class="body-copy">{e(p['body'])}</p></div><div class="details-list">{info}</div>{lab}</article></div></section>
 <section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
 <section class="related"><div class="wrap"><div class="section-head"><h2>{'More CBD favorites.' if p['cbd'] else 'Also in this collection.'}</h2><a class="text-link" href="{'../products.html' if p['cbd'] else p['category']+'.html'}">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''
@@ -253,7 +261,7 @@ def render_story():
 
 def render_contact():
     body = f'''<section class="wrap contact-layout"><div class="contact-intro"><p class="eyebrow">Contact</p><h1>Let’s talk.</h1><p class="lead">Not sure which scent to choose? Have a question about an order? Send us a note. We’re happy to help.</p>
-<dl class="contact-methods"><div class="contact-method"><dt>Email us</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div><div class="contact-method"><dt>Find us</dt><dd>Charlottesville, Virginia<br><a class="small" href="cbd-charlottesville.html">Market locations, dates &amp; local buying options</a></dd></div></dl><p class="contact-note">For an order question, include your order number. If you’re asking about a particular product, its name and batch code are helpful.</p><p class="contact-note">For shop, wholesale, or collaboration inquiries, send us a note about what you have in mind.</p></div>
+<dl class="contact-methods"><div class="contact-method"><dt>Email us</dt><dd><a href="mailto:{EMAIL}">{EMAIL}</a></dd></div><div class="contact-method"><dt>Business address</dt><dd>1101 Little High St #2<br>Charlottesville, VA 22902</dd></div><div class="contact-method"><dt>Find us</dt><dd>Charlottesville, Virginia<br><a class="small" href="cbd-charlottesville.html">Market locations, dates &amp; local buying options</a></dd></div></dl><p class="contact-note">For an order question, include your order number. If you’re asking about a particular product, its name and batch code are helpful.</p><p class="contact-note">For shop, wholesale, or collaboration inquiries, send us a note about what you have in mind.</p></div>
 <div class="contact-founder contact-founder-note"><p class="founder-label">Gwyn · Owner &amp; maker</p><h2>Hi, I’m Gwyn.</h2><p>I learned to make these products through my mom’s business in Colorado. Now I make Blue Koi’s body care in small batches here in Virginia, using the skills she taught me.</p><p>Whether we met at the market or you found us online, I’m glad you’re here.</p><a class="text-link" href="about.html">A little more about Blue Koi</a></div></section>
 <section class="section contact-market"><div class="wrap market-grid"><figure>{photo('market')}<figcaption class="photo-caption">Our Blue Koi table at a local market.</figcaption></figure><div class="market-copy"><p class="eyebrow">Around Charlottesville</p><h2>Meet us at the market.</h2><p class="lead">Come smell the oils, try a sample, and ask a few questions. Find your next visit on our market calendar.</p><div class="actions"><a class="button" href="index.html#market-calendar">See the market calendar</a></div></div></div></section>'''
     page('contact.html', 'Contact us', 'Contact us at Blue Koi Botanicals for product questions, orders, local markets, and wholesale inquiries. Based in Charlottesville, Virginia.', body, 'contact.html')
@@ -273,7 +281,7 @@ def stage():
     (dist / 'assets').mkdir()
     archived_photos = {PHOTOS[product_photo(p)][0] for p in ARCHIVED_PRODUCTS}
     archived_stickers = {filename for p in ARCHIVED_PRODUCTS for filename in STICKERS.get(p['slug'], [])}
-    for directory in ['photos', 'coa', 'stickers']:
+    for directory in ['photos', 'coa', 'stickers', 'cards']:
         excluded = archived_photos if directory == 'photos' else archived_stickers if directory == 'stickers' else set()
         shutil.copytree(ROOT / 'assets' / directory, dist / 'assets' / directory, ignore=shutil.ignore_patterns(*excluded) if excluded else None)
     shutil.copy2(ROOT / 'assets/logo.png', dist / 'assets/logo.png')
