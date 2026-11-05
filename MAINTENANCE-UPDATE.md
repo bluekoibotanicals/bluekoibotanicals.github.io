@@ -1,6 +1,6 @@
 # Temporary checkout pause
 
-Online checkout is paused while a replacement payment provider is arranged. Customers can browse products and email blue.koi.botanicals@gmail.com to order. The notice estimates a return by the end of November 2026.
+Online checkout is unavailable while a replacement payment provider is arranged. Customers can browse products and email blue.koi.botanicals@gmail.com to order. The public notice explains the payment-processing difficulty and states that orders cannot be shipped until November 19, 2026.
 
 The original Square checkout, payment code, order management, webhook, and recovery logic remain in this project. The site generator's `COMMERCE_PAUSED` flag hides purchase controls and replaces the cart and checkout pages with the notice; the separate `COMMERCE_PAUSED` flag in `server/worker.mjs` rejects quote and checkout requests, including direct requests. Existing orders and review functions remain available.
 

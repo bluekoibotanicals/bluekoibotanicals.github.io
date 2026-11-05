@@ -189,10 +189,10 @@ async function reviewToken(env,token) {
   if(!past || past.revoked_at || past.expires_at<=now())fail('This review invitation is invalid or has expired. Contact us for help.',403);
   return {id:past.id,past:true,data:JSON.stringify({lines:JSON.parse(past.products_json)})};
 }
-const COMMERCE_PAUSED = false; // Set to true to pause checkout and quotes.
+const COMMERCE_PAUSED = true; // Set to false after the replacement payment integration is ready.
 async function route(req,env,ctx,session) {
   const u=new URL(req.url),p=u.pathname;
-  if (COMMERCE_PAUSED && req.method==='POST' && ['/api/quote','/api/checkout'].includes(p)) fail('Online checkout is temporarily paused. Please email blue.koi.botanicals@gmail.com to order.',503,'COMMERCE_PAUSED');
+  if (COMMERCE_PAUSED && req.method==='POST' && ['/api/quote','/api/checkout'].includes(p)) fail('Online checkout is temporarily unavailable while we transition to a new payment provider. Please email blue.koi.botanicals@gmail.com to order. Orders cannot be shipped until November 19.',503,'COMMERCE_PAUSED');
   if (p==='/api/config' && req.method==='GET') {
     const code=env.DB?await first(env,"SELECT code FROM discount_codes WHERE code='FREESHIP25' AND active=1 AND kind='free_shipping' AND minimum_subtotal_cents=2501"):null;
     return json({mode:env.STORE_MODE || 'preview',checkout_ready:!COMMERCE_PAUSED && ready(env),square_environment:env.SQUARE_ENVIRONMENT || 'sandbox',application_id:env.SQUARE_APPLICATION_ID || '',location_id:env.SQUARE_LOCATION_ID || '',processing:store.processing_days,free_shipping:{enabled:!!code,code:'FREESHIP25',banner:'Free shipping for the first 50 customers on orders over $25.',terms:'Enter FREESHIP25 below and choose the lowest-priced shipping service. Merchandise subtotal must exceed $25 before tax. Expedited services cost extra. One code per order.'}});
