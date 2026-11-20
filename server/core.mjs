@@ -1,3 +1,4 @@
+import {isEPD, epdReady} from './epd.mjs';
 import products from '../content/products.json' with { type: 'json' };
 import store from '../content/store.json' with { type: 'json' };
 export { products, store };
@@ -40,7 +41,7 @@ export function makeLines(cart, catalog) {
     const p = catalog.find(p => p.slug === line.slug);
     if (!p || !p.online_enabled || p.stock < line.quantity) fail(`${p?.name || 'This item'} is unavailable in the requested quantity.`, 409, 'STOCK_CHANGED');
     if (!Number.isInteger(p.price_cents) || p.price_cents <= 0) fail('A product price needs to be checked.', 503);
-    return { slug: p.slug, name: p.name, size: p.display_size, quantity: line.quantity, price_cents: p.price_cents, variation_id: p.square_variation_id, cbd: p.cbd, weight_lb: p.weight_lb, package: p.package, customs_tariff_number: p.customs_tariff_number, origin_country: p.origin_country };
+    return { slug: p.slug, name: p.name, size: p.display_size, quantity: line.quantity, price_cents: p.price_cents, variation_id: p.epd_sku || p.square_variation_id, epd_sku:p.epd_sku, cbd: p.cbd, weight_lb: p.weight_lb, package: p.package, customs_tariff_number: p.customs_tariff_number, origin_country: p.origin_country };
   });
 }
 export function checkDestination(lines, a) {
@@ -68,6 +69,7 @@ export function promotionalRates(rates, freeShipping = false) {
 }
 export function publicProduct(p) { return {slug:p.slug,name:p.name,display_size:p.display_size,price_cents:p.price_cents,stock:p.stock,inventory_tracked:p.inventory_tracked,online_enabled:p.online_enabled,cbd:p.cbd,parent_slug:p.parent_slug,jar_capacity_oz:p.jar_capacity_oz,image:`assets/photos/${p.photo_slug || p.slug}.jpeg`}; }
 export function ready(env) {
+  if (isEPD(env)) return epdReady(env);
   const mode = env.STORE_MODE || 'preview';
   const basic = ['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON'].every(k => Boolean(env[k]));
   return mode === 'sandbox' ? basic && env.SQUARE_ENVIRONMENT === 'sandbox' : mode === 'live' && basic && env.SQUARE_ENVIRONMENT === 'production' && env.LIVE_LAUNCH_CONFIRMED === 'true' && !!env.SQUARE_WEBHOOK_SIGNATURE_KEY && !!env.SQUARE_WEBHOOK_URL && !!env.RESEND_API_KEY && !!env.EMAIL_FROM && (env.ADMIN_TOKEN?.length || 0)>=32;

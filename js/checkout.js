@@ -11,17 +11,38 @@ form.addEventListener('input',clearQuote);form.addEventListener('change',clearQu
 window.addEventListener('storage',event=>{if(event.key==='bk_cart')clearQuote();});
 $('#billing-form').addEventListener('submit',event=>event.preventDefault());
 $('#billing-same').addEventListener('change',()=>$('#billing-form').hidden=$('#billing-same').checked);
+let tokenRequest=null,cardSetup=null;
+window.bkEPDToken=response=>{if(tokenRequest){const pending=tokenRequest;tokenRequest=null;clearTimeout(pending.timer);response?.token?pending.resolve(response.token):pending.reject(new Error('Please check your card details.'));}};
+window.bkEPDTimeout=()=>{if(tokenRequest){const pending=tokenRequest;tokenRequest=null;clearTimeout(pending.timer);pending.reject(new Error('Please check your card details and try again.'));}};
+window.bkEPDValidation=(field,valid,message)=>{if(!valid){error(message || 'Please check your card details.');window.bkEPDTimeout();}};
 async function setupCard(config){
   if(card)return;
-  if(!window.Square){await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=config.square_environment==='production'?'https://web.squarecdn.com/v1/square.js':'https://sandbox.web.squarecdn.com/v1/square.js';script.onload=resolve;script.onerror=()=>reject(new Error('The secure card form could not load. Check your connection and try again.'));document.head.append(script);});}
-  const payments=window.Square.payments(config.application_id,config.location_id);card=await payments.card();await card.attach('#card-container');
+  if(cardSetup)return cardSetup;
+  cardSetup=(async()=>{
+    if(!config.tokenization_key || !config.collect_js_url)throw new Error('Secure checkout is being configured. Please contact us.');
+    if(!window.CollectJS)await new Promise((resolve,reject)=>{
+      const script=document.createElement('script');script.src=config.collect_js_url;
+      script.dataset.tokenizationKey=config.tokenization_key;script.dataset.variant='inline';
+      const timer=setTimeout(()=>reject(new Error('The secure card form could not load. Reload the page to retry.')),15000);
+      script.onload=()=>{clearTimeout(timer);resolve();};script.onerror=()=>{clearTimeout(timer);script.remove();reject(new Error('The secure card form could not load. Check your connection.'));};document.head.append(script);
+    });
+    await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('Secure payment fields are unavailable. Reload the page to retry.')),15000);
+      window.bkEPDFieldsReady=()=>{clearTimeout(timer);resolve();};
+      window.CollectJS.configure({variant:'inline',blockEval:'true',paymentSelector:'#epd-tokenize-trigger',
+        fields:{ccnumber:{selector:'#ccnumber',title:'Card number',placeholder:'Card number'},ccexp:{selector:'#ccexp',title:'Expiration date',placeholder:'MM / YY'},cvv:{selector:'#cvv',title:'Security code',placeholder:'CVV'}},
+        callback:window.bkEPDToken,validationCallback:'bkEPDValidation',timeoutCallback:'bkEPDTimeout',fieldsAvailableCallback:'bkEPDFieldsReady',timeoutDuration:10000});
+    });
+    card={tokenize:()=>new Promise((resolve,reject)=>{tokenRequest={resolve:token=>resolve({status:'OK',token}),reject,timer:setTimeout(window.bkEPDTimeout,15000)};window.CollectJS.startPaymentRequest();})};
+  })();
+  try{await cardSetup;}catch(e){cardSetup=null;throw e;}
 }
 function selectedRate(){rate=quote.rates.find(r=>r.id===$('input[name="shipping-rate"]:checked')?.value);if(!rate)return;const t={...quote.item_totals,discount_code:quote.discount?.code,shipping:rate.amount,total:quote.item_totals.total+rate.amount};$('#checkout-totals').innerHTML=totalsHTML(t);$('#pay-button').textContent=`Pay ${currency(t.total)} USD`;$('#parcel-note').textContent=rate.parcel_count>1?`This quote covers ${rate.parcel_count} parcels.`:'Items ship together in one parcel.';$('#pay-button').disabled=!card;}
 const config=await configPromise;
 const promotion=$('#shipping-promotion');
 if(promotion){promotion.hidden=!config.free_shipping?.enabled;if(config.free_shipping?.enabled){promotion.querySelector('strong').textContent=config.free_shipping.banner;promotion.querySelector('small').textContent=config.free_shipping.terms;}}
 $('#use-shipping-code')?.addEventListener('click',()=>{if(paying || $('#discount-code').disabled)return;$('#discount-code').value='FREESHIP25';clearQuote();$('#discount-code').focus();$('#discount-status').textContent='Code entered. Click Get shipping options to apply it.';});
-$('#checkout-mode').textContent=config.mode==='sandbox'?'Test checkout — use Square sandbox card details. No real payments will be collected.':!config.checkout_ready?'Online checkout is being prepared. Please email us for help placing an order.':'';
+$('#checkout-mode').textContent=config.mode==='sandbox'?'Test checkout — use only the EPD/NMI sandbox credentials and test cards.':!config.checkout_ready?'Online checkout is being prepared. Please email us for help placing an order.':'';
 $('#checkout-mode').hidden=config.mode==='live' && config.checkout_ready;
 const data=await catalogPromise,cart=getCart(),items=cart.map(l=>({...data.products.find(p=>p.slug===l.slug),...l})).filter(p=>p.name);
 $('#checkout-items').innerHTML=items.length?linesHTML(items):`<p>Your bag is empty. <a href="${pageURL('products.html')}">Browse products</a>.</p>`;
@@ -48,7 +69,7 @@ $('#pay-button').addEventListener('click',async()=>{
   document.querySelectorAll('#address-form input,#address-form select,#get-rates,#shipping-rates input,#billing-same,#billing-form input,#billing-form select,#pay-button').forEach(el=>el.disabled=true);
   $('#pay-button').textContent='Processing securely…';
   try{
-    const name=billing.name.split(' '),token=await card.tokenize({amount:(total/100).toFixed(2),currencyCode:'USD',intent:'CHARGE',customerInitiated:true,sellerKeyedIn:false,billingContact:{givenName:name.shift(),familyName:name.join(' '),email:billing.email,...(billing.phone?{phone:billing.phone}:{}),addressLines:[billing.street1,billing.street2].filter(Boolean),city:billing.city,state:billing.state,postalCode:billing.zip,countryCode:billing.country}});
+    const token=await card.tokenize();
     if(token.status!=='OK')throw new Error(token.errors?.map(e=>e.message).join(' ') || 'Please check your card details.');
     // Save only the quote ID, never card tokens, so a dropped network response can be recovered.
     sessionStorage.setItem('bk_pending_quote',snapshot.quote.id);

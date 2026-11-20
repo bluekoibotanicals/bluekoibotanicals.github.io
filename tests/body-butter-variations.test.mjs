@@ -10,7 +10,7 @@ test('every scent has two capacities and the small jars ship at 0.5925 lb with o
   assert.equal(butters.length,10);
   for(const p of butters.filter(p=>p.jar_capacity_oz===8)){
     const small=butters.find(x=>x.slug===p.slug+'-4oz');assert.ok(small);
-    assert.equal(small.parent_slug,p.slug);assert.equal(p.price_cents,2800);assert.equal(small.price_cents,2000);
+    assert.equal(small.parent_slug,p.slug);assert.equal(p.price_cents,2400);assert.equal(small.price_cents,1800);
     assert.equal(parcels([{...small,quantity:1}])[0].parcel.weight,'0.5925');
     assert.notEqual(p.photo_slug,small.photo_slug);
     assert.doesNotMatch(p.size,/Net Wt/);assert.doesNotMatch(small.size,/Net Wt/);
@@ -28,7 +28,7 @@ test('both Jasmine sizes retain separate Square order lines and combined shippin
     const paid=await f.pay(q);assert.equal(paid.status,200);
     const order=[...f.state.orders.values()][0];
     assert.deepEqual(order.line_items.map(p=>p.catalog_object_id),['v-jasmine-whipped-body-butter','v-jasmine-whipped-body-butter-4oz']);
-    assert.deepEqual(order.line_items.map(p=>p.base_price_money.amount),[2800,2000]);
+    assert.deepEqual(order.line_items.map(p=>p.base_price_money.amount),[2400,1800]);
   }finally{f.close();}
 });
 test('manual availability and sold-out overrides are independent of the other size',async()=>{

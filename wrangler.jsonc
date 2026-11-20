@@ -1,39 +1,44 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "blue-koi-storefront",
-	"main": "server/worker.mjs",
-	"workers_dev": false,
-	"routes": [{"pattern": "bluekoibotanicals.com/*", "zone_name": "bluekoibotanicals.com"}],
-	"compatibility_date": "2026-09-18",
-	"assets": {
-		"directory": "./dist",
-		"binding": "ASSETS",
-		"run_worker_first": true
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "blue-koi-store",
-			"database_id": "bf52761f-0bec-4b08-b997-f7afdccfb3d6",
-			"migrations_dir": "migrations"
-		}
-	],
-	"vars": {
-		"STORE_MODE": "live",
-		"SITE_URL": "https://bluekoibotanicals.com",
-		"SQUARE_ENVIRONMENT": "production",
-		"SQUARE_API_VERSION": "2026-09-16",
-		"SQUARE_APPLICATION_ID": "sq0idp-kBUz06D2P7iLThT_GYYnmA",
-		"SQUARE_LOCATION_ID": "LBZYNM2ZZF9AN",
-		"EMAIL_FROM": "Blue Koi Botanicals <orders@bluekoibotanicals.com>",
-		"OWNER_EMAIL": "blue.koi.botanicals@gmail.com",
-		"LIVE_LAUNCH_CONFIRMED": "true",
-		"SHIPPO_AUTO_LABELS": "true",
-		"SQUARE_WEBHOOK_URL": "https://bluekoibotanicals.com/api/webhooks/square"
-	},
-	"triggers": {
-		"crons": [
-			"*/5 * * * *"
-		]
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blue-koi-storefront",
+  "main": "server/worker.mjs",
+  "workers_dev": false,
+  "routes": [
+    {
+      "pattern": "bluekoibotanicals.com/*",
+      "zone_name": "bluekoibotanicals.com"
+    }
+  ],
+  "compatibility_date": "2026-09-18",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blue-koi-store",
+      "database_id": "bf52761f-0bec-4b08-b997-f7afdccfb3d6",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "STORE_MODE": "live",
+    "SITE_URL": "https://bluekoibotanicals.com",
+    "EMAIL_FROM": "Blue Koi Botanicals <orders@bluekoibotanicals.com>",
+    "OWNER_EMAIL": "blue.koi.botanicals@gmail.com",
+    "LIVE_LAUNCH_CONFIRMED": "true",
+    "SHIPPO_AUTO_LABELS": "false",
+    "PAYMENT_PROVIDER": "epd",
+    "EPD_GATEWAY_ORIGIN": "https://secure.easypaydirectgateway.com",
+    "EPD_PUBLIC_TOKENIZATION_KEY": "8r4Hv6-2T4zuB-JDSgcr-dS6jMs",
+    "EPD_LIVE_ACCOUNT_CONFIRMED": "true",
+    "INVENTORY_CONFIRMED": "true"
+  },
+  "triggers": {
+    "crons": [
+      "*/5 * * * *"
+    ]
+  }
 }

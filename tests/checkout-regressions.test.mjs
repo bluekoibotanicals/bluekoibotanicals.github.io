@@ -80,8 +80,8 @@ test('live configuration uses real rates, all-destination tax, and an optional c
   const f=fixture();emails(f);Object.assign(f.env,{STORE_MODE:'live',SQUARE_ENVIRONMENT:'production',LIVE_LAUNCH_CONFIRMED:'true',SHIPPO_API_KEY:'shippo_live_fixture'});
   await f.request('/api/admin/discount-codes',{action:'create',code:'FREESHIP',kind:'free_shipping',value:0,minimum_subtotal_cents:0},admin(f));
   const q=await f.quote([{slug:cbd,quantity:1}],{...address,state:'NY'},'FREESHIP');assert.equal(q.status,200);
-  assert.equal(q.data.item_totals.tax,170);assert.equal(q.data.rates[0].amount,0);
-  const p=await f.pay(q);assert.equal(p.data.totals.total,3370);await f.flush();assert.equal(f.state.emails.length,2);f.close();
+  assert.equal(q.data.item_totals.tax,148);assert.equal(q.data.rates[0].amount,0);
+  const p=await f.pay(q);assert.equal(p.data.totals.total,2948);await f.flush();assert.equal(f.state.emails.length,2);f.close();
 });
 test('owner and customer emails retry independently, with persistent sent flags',async()=>{
   for(const failing of ['customer@example.com','owner@example.com']){

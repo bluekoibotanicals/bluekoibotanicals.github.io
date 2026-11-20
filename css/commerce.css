@@ -21,3 +21,5 @@
 
 /* Temporary storefront maintenance notice. */
 .maintenance-banner{padding:14px 24px;text-align:center;background:#e6eef3;color:#173d52;font-size:.9rem;line-height:1.6}.maintenance-banner a{color:inherit;text-decoration:underline;font-weight:600}.buy-row[hidden],.stock-note[hidden]{display:none!important}
+
+.epd-field{min-height:46px;background:#fff;border:1px solid #8b9a9e;border-radius:4px;padding:8px}.epd-field iframe{width:100%;min-height:28px;border:0}.inventory-row{display:flex;align-items:end;gap:1rem;flex-wrap:wrap}.inventory-row .field{flex:1;min-width:230px}

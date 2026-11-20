@@ -73,8 +73,8 @@ def photo(key, prefix='', eager=False, extra=''):
     return f'<div class="photo photo-{key} {extra}"><img src="{prefix}assets/photos/{name}" alt="{e(alt)}" width="{width}" height="{height}" loading="{loading}" decoding="async"{priority}></div>'
 
 
-COMMERCE_PAUSED = True  # Set to False only after a new payment integration is ready.
-PAUSE_BANNER = f'''<aside class="maintenance-banner" aria-label="Store update"><strong>Online checkout is temporarily unavailable.</strong> We’re having payment-processing difficulties while we transition to a new provider. To place an order, <a href="mailto:{EMAIL}?subject=Blue%20Koi%20order">email us</a>. Please note: orders cannot be shipped until November 19.</aside>'''
+COMMERCE_PAUSED = False  # Set to False only after a new payment integration is ready.
+PAUSE_BANNER = f'''<aside class="maintenance-banner" aria-label="Store update"><strong>Online checkout is temporarily unavailable.</strong> We’re having payment-processing difficulties while we transition to a new provider. To place an order, <a href="mailto:{EMAIL}?subject=Blue%20Koi%20order">email us</a>. </aside>'''
 
 def nav(prefix, active):
     items = [('index.html', 'Home'), ('products.html', 'Products'), ('cbd-charlottesville.html', 'Find us locally'), ('about.html', 'Our story'), ('contact.html', 'Contact')]
@@ -112,7 +112,7 @@ def page(path, title, description, body, active='products.html'):
         breadcrumbs = [('Home', 'index.html'), (label, path)]
     if COMMERCE_PAUSED:
         if path in {'cart.html', 'checkout.html'}:
-            body = f'''<section class="page-top wrap narrow section-bottom"><p class="eyebrow">Blue Koi Botanicals</p><h1>Online checkout is temporarily unavailable.</h1><p class="lead">We’re having payment-processing difficulties while we transition to a new provider. To place an order, email us. Please note: orders cannot be shipped until November 19.</p><a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a></section>'''
+            body = f'''<section class="page-top wrap narrow section-bottom"><p class="eyebrow">Blue Koi Botanicals</p><h1>Online checkout is temporarily unavailable.</h1><p class="lead">We’re having payment-processing difficulties while we transition to a new provider. To place an order, email us. </p><a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a></section>'''
         body = body.replace('Shop online or find our table', 'Browse our collection or find our table').replace('Orders process in 1–3 days. Choose your delivery service and see current shipping rates at checkout.', 'Please email us to place an order.').replace('Choose your products here, then see shipping options and tax at checkout.', 'Please email us to place an order.')
     metadata = page_head(path, title, description, image=image, product=product, breadcrumbs=breadcrumbs, collection=bool(category))
     doc = f'''<!DOCTYPE html>
@@ -239,7 +239,7 @@ def render_detail(p):
 <p class="lead">{e(p['description'])}</p>{highlights}
 {variant_nav}
 {sizes}
-<div class="buy-row" {"hidden" if COMMERCE_PAUSED else ""}><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>Loading…</button><a class="text-link" href="../contact.html">Ask us a question</a></div>{f'<a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a>' if COMMERCE_PAUSED else ""}<p class="stock-note" data-stock="{slug}" {"hidden" if COMMERCE_PAUSED else ""}></p><p class="small">Orders cannot be shipped until November 19. U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
+<div class="buy-row" {"hidden" if COMMERCE_PAUSED else ""}><label class="field purchase-quantity">Quantity<input type="number" value="1" min="1" max="12" step="1" id="product-quantity"></label><button class="button" type="button" data-add-product="{slug}" disabled>Loading…</button><a class="text-link" href="../contact.html">Ask us a question</a></div>{f'<a class="button" href="mailto:{EMAIL}?subject=Blue%20Koi%20order">Email us to order</a>' if COMMERCE_PAUSED else ""}<p class="stock-note" data-stock="{slug}" {"hidden" if COMMERCE_PAUSED else ""}></p><p class="small">U.S. delivery only. {'CBD delivery to all 50 states and Washington, D.C.' if p['cbd'] else ''} <a href="../shipping-returns.html">Shipping &amp; returns</a></p>
 <div class="product-story"><h2>A closer look</h2><p class="body-copy">{e(p['body'])}</p></div><div class="details-list">{info}</div>{lab}</article></div></section>
 <section class="review-section"><div class="wrap"><h2>From our customers.</h2><div data-reviews="{slug}"><p class="muted">Loading purchase reviews…</p></div><p class="small muted">After your order ships, we’ll email you a private link to share your experience.</p></div></section>
 <section class="related"><div class="wrap"><div class="section-head"><h2>{'More CBD favorites.' if p['cbd'] else 'Also in this collection.'}</h2><a class="text-link" href="{'../products.html' if p['cbd'] else p['category']+'.html'}">View the collection</a></div><div class="product-grid">{cards}</div></div></section>'''

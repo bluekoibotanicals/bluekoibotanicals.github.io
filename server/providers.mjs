@@ -1,3 +1,4 @@
+import {isEPD, epdCatalog} from './epd.mjs';
 import {flattenVariations, variationCandidates} from './catalog-matching.mjs';
 import {activeProducts, store, StoreError, fail, money, parcels, uuid, clean, checkDestination} from './core.mjs';
 const transport = env => env.FETCH || fetch;
@@ -38,6 +39,7 @@ async function mappedProducts(env) {
   });
 }
 export async function catalog(env) {
+  if (isEPD(env)) return epdCatalog(env);
   if (!env.SQUARE_ACCESS_TOKEN || !env.SQUARE_LOCATION_ID || env.STORE_MODE === 'preview') return activeProducts.map(p => ({...p,stock:p.stock_snapshot}));
   const resolved = await mappedProducts(env);
   const ids = resolved.map(p => p.square_variation_id).filter(Boolean);
@@ -61,7 +63,7 @@ export async function catalog(env) {
     const manualAvailability = p.category === 'body-butters' && !tracked;
     const stock = soldOut ? 0 : tracked ? Math.max(0,Math.floor(Number(count?.quantity || 0))) : manualAvailability ? store.max_items_per_order : 0;
     const present = v?.present_at_all_locations !== false || v?.present_at_location_ids?.includes(env.SQUARE_LOCATION_ID);
-    return {...p,price_cents:Number(price?.amount || p.price_cents), stock, inventory_tracked:tracked, online_enabled:p.online_enabled && !!d && !v?.is_deleted && !parent?.is_deleted && present && !v?.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID) && (tracked || manualAvailability) && price?.currency === 'USD' && Number(price.amount)>0};
+    return {...p,epd_sku:undefined,price_cents:Number(price?.amount || p.price_cents), stock, inventory_tracked:tracked, online_enabled:p.online_enabled && !!d && !v?.is_deleted && !parent?.is_deleted && present && !v?.absent_at_location_ids?.includes(env.SQUARE_LOCATION_ID) && (tracked || manualAvailability) && price?.currency === 'USD' && Number(price.amount)>0};
   });
 }
 export async function shipping(env, lines, a) {

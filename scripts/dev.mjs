@@ -4,7 +4,7 @@ import {resolve,extname,relative,isAbsolute} from 'node:path';
 import {parseEnv} from 'node:util';
 import {LocalDB} from './local-db.mjs';
 import worker from '../server/worker.mjs';
-const root=resolve(import.meta.dirname,'..'),port=Number(process.env.PORT || 8787);
+const root=resolve(import.meta.dirname,'..'),port=Number(process.env.PORT || (process.argv.includes('--port')?process.argv[process.argv.indexOf('--port')+1]:8787));
 await mkdir(resolve(root,'.local'),{recursive:true});
 const DB=new LocalDB(resolve(root,process.env.BK_TEST_PREVIEW?'.local/test-preview.sqlite':'.local/store.sqlite'));
 DB.exec('CREATE TABLE IF NOT EXISTS local_migrations (name TEXT PRIMARY KEY)');

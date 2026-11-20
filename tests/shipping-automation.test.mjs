@@ -51,7 +51,7 @@ test('SAVE15FORYOU applies to larger CBD carts and can be deactivated, invalidat
   const f=fixture();
   try{
     const q=await f.quote([{slug:'cbd-salve',quantity:2}],address,'SAVE15FORYOU');
-    assert.equal(q.data.discount.amount,960);assert.equal(q.data.rates[0].amount,0);
+    assert.equal(q.data.discount.amount,840);assert.equal(q.data.rates[0].amount,0);
     await f.request('/api/admin/discount-codes',{action:'set-active',code:'SAVE15FORYOU',active:false},admin(f));
     assert.equal((await f.pay(q)).data.code,'QUOTE_EXPIRED');assert.equal(f.state.paymentCalls,0);
   }finally{await f.flush();f.close();}

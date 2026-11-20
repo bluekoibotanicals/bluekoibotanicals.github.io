@@ -1,9 +1,10 @@
+import {isEPD, gatewayOrigin, epdSale, epdLookup} from './epd.mjs';
 import {store, products, activeProducts, StoreError, fail, now, uuid, digest, hmac, safeEqual, clean, address, normalizeCart, makeLines, checkDestination, totals, publicProduct, ready, money, promotionalRates} from './core.mjs';
 import {catalog, shipping, square, squareAddress, squareOrder, sendEmail} from './providers.mjs';
 import {ensureLabel, maintainLabels} from './labels.mjs';
 import {createPastInvitation,listPastInvitations,pastInvitationAction,retryPastInvitations} from './past-reviews.mjs';
 import {canonicalRedirect, isPrivatePage} from './seo-routing.mjs';
-const checkoutPolicy=()=>JSON.stringify({version:5,tax:store.tax});
+const checkoutPolicy=()=>JSON.stringify({version:6,tax:store.tax});
 const stmt = (env,sql,...values) => env.DB.prepare(sql).bind(...values);
 const first = (env,sql,...values) => stmt(env,sql,...values).first();
 const all = async (env,sql,...values) => (await stmt(env,sql,...values).all()).results;
@@ -17,7 +18,7 @@ async function limit(env, req, scope, max=30) {
 }
 function admin(req,env) { if (!env.ADMIN_TOKEN || env.ADMIN_TOKEN.length<32 || !safeEqual(req.headers.get('Authorization') || '',`Bearer ${env.ADMIN_TOKEN}`)) fail('Sign in to manage the store.',401); }
 async function ownedOrder(env,id,session) { const o=await first(env,'SELECT * FROM orders WHERE id=? AND session_hash=?',id,session); if (!o) fail('Order not found in this browser.',404); return o; }
-function publicOrder(o) { const d=JSON.parse(o.data); return {id:o.id,status:o.status,lines:d.lines.map(p=>({name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),totals:d.totals,discount:d.discount || null,refunded_cents:d.refunded_cents || 0,carrier:d.rate.carrier,service:d.rate.service,receipt_url:d.receipt_url || null,tracking:d.tracking || null}; }
+function publicOrder(o) { const d=JSON.parse(o.data); return {id:o.id,status:o.status,test_mode:o.payment_environment==='sandbox',lines:d.lines.map(p=>({name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),totals:d.totals,discount:d.discount || null,refunded_cents:d.refunded_cents || 0,carrier:d.rate.carrier,service:d.rate.service,receipt_url:d.receipt_url || null,tracking:d.tracking || null}; }
 function discountCode(value) {
   const code=clean(value,32).toUpperCase();
   if (code && !/^[A-Z0-9][A-Z0-9-]{2,31}$/.test(code)) fail('Enter a valid discount code.',400,'DISCOUNT_INVALID');
@@ -33,18 +34,31 @@ async function resolveDiscount(env,input,subtotal) {
 }
 const sameDiscount=(a,b)=>JSON.stringify(a || null)===JSON.stringify(b || null);
 async function finishPayment(env,o,payment) {
-  if (!payment || payment.order_id!==o.square_order_id || Number(payment.amount_money?.amount)!==JSON.parse(o.data).totals.total || payment.amount_money?.currency!=='USD') fail('Payment requires an order check. Please contact us.',503,'PAYMENT_MISMATCH');
+  if (!payment || payment.order_id!==(o.payment_provider==='epd'?o.id:o.square_order_id) || Number(payment.amount_money?.amount)!==JSON.parse(o.data).totals.total || payment.amount_money?.currency!=='USD') fail('Payment requires an order check. Please contact us.',503,'PAYMENT_MISMATCH');
   const state=payment.status === 'COMPLETED' ? (Number(payment.refunded_money?.amount || 0)>=Number(payment.amount_money.amount) ? 'refunded' : 'paid') : ['CANCELED','FAILED'].includes(payment.status) ? 'failed' : 'processing';
   const data=JSON.parse(o.data);data.refunded_cents=Number(payment.refunded_money?.amount || 0); if (payment.receipt_url?.startsWith('https://')) data.receipt_url=payment.receipt_url;
-  await run(env,'UPDATE orders SET status=?,payment_id=?,data=?,payment_request=CASE WHEN ?=\'processing\' THEN payment_request ELSE NULL END,recovery_note=NULL,updated_at=? WHERE id=? AND status IN (\'processing\',\'paid\',\'refunded\')',state,payment.id,JSON.stringify(data),state,now(),o.id);
-  if (state!=='processing') await run(env,'DELETE FROM reservations WHERE order_id=?',o.id);
+  if (o.payment_provider==='epd') {
+    const statements=[];
+    // D1 batch is transactional. Stock and the committed flag change together,
+    // so webhook/poll/recovery races cannot decrement a paid order twice.
+    if (['paid','refunded'].includes(state)) {
+      for(const line of data.lines)statements.push(stmt(env,`UPDATE website_inventory SET quantity=quantity-?,version=version+1,updated_at=? WHERE slug=? AND EXISTS (SELECT 1 FROM orders WHERE id=? AND inventory_committed=0)`,line.quantity,now(),line.slug,o.id));
+      statements.push(stmt(env,'UPDATE orders SET inventory_committed=1 WHERE id=?',o.id));
+    }
+    statements.push(stmt(env,`UPDATE orders SET status=?,payment_id=?,data=?,payment_request=NULL,recovery_note=NULL,updated_at=? WHERE id=? AND status IN ('processing','paid','refunded')`,state,payment.id,JSON.stringify(data),now(),o.id));
+    if(state!=='processing')statements.push(stmt(env,'DELETE FROM reservations WHERE order_id=?',o.id));
+    await env.DB.batch(statements);
+  } else {
+    await run(env,`UPDATE orders SET status=?,payment_id=?,data=?,payment_request=CASE WHEN ?='processing' THEN payment_request ELSE NULL END,recovery_note=NULL,updated_at=? WHERE id=? AND status IN ('processing','paid','refunded')`,state,payment.id,JSON.stringify(data),state,now(),o.id);
+    if(state!=='processing')await run(env,'DELETE FROM reservations WHERE order_id=?',o.id);
+  }
   return first(env,'SELECT * FROM orders WHERE id=?',o.id);
 }
 async function afterPayment(env,o) {
   await Promise.allSettled([confirmation(env,o),ensureLabel(env,o)]);
 }
 async function confirmation(env,o) {
-  if (o.status!=='paid') return;
+  if (o.status!=='paid' || (o.payment_provider==='epd' && o.payment_environment!=='live')) return;
   const d=JSON.parse(o.data), t=d.totals;
   const discountSummary=d.discount ? d.discount.kind==='free_shipping' ? `\nDiscount code ${d.discount.code}: Free shipping` : `\nDiscount code ${d.discount.code}: -$${money(t.discount)}${d.discount.free_shipping?' + free lowest-cost shipping':''}` : '';
   const summary=`Order: ${o.id}\n${d.lines.map(p=>`${p.quantity} × ${p.name} (${p.size}) — $${money(p.price_cents*p.quantity)}`).join('\n')}\n\nItems: $${money(t.subtotal)}${discountSummary}\nShipping: $${money(t.shipping)} (${d.rate.carrier} ${d.rate.service})\nSales tax (5.3%): $${money(t.tax)}\nTotal: $${money(t.total)} USD`;
@@ -58,12 +72,14 @@ async function confirmation(env,o) {
     (async()=>{
       if(o.owner_email_sent)return;
       const a=d.address;
-      const sent=await sendEmail(env,{to:env.OWNER_EMAIL || store.email,subject:`New paid Blue Koi order ${o.id.slice(0,8)}`,key:`owner-order-${o.id}`,text:`Gwyn, a website order has been paid.\n\n${summary}\n\nShip to:\n${[a.name,a.street1,a.street2,`${a.city}, ${a.state} ${a.zip}`,a.country].filter(Boolean).join('\n')}\nEmail: ${a.email}\nPhone: ${a.phone || 'Not supplied'}\n\nPackage:\n${d.parcels.map(p=>`${p.description}\n${p.parcel.length} × ${p.parcel.width} × ${p.parcel.height} in; ${p.parcel.weight} lb`).join('\n')}\n\nSquare order: ${o.square_order_id}\nPayment: ${o.payment_id}\n\n${d.auto_label?'A shipping label is being created automatically in Shippo. You will receive a separate label-ready email or an alert if it needs attention. Check the admin page before purchasing postage manually.':'This order uses manual label preparation in Shippo.'} Check the physical packed weight and fit before shipping, then enter tracking and mark fulfilled in Square when handed to the carrier.\n\nManage orders: ${env.SITE_URL}/admin.html`});
+      const sent=await sendEmail(env,{to:env.OWNER_EMAIL || store.email,subject:`New paid Blue Koi order ${o.id.slice(0,8)}`,key:`owner-order-${o.id}`,text:`Gwyn, a website order has been paid.\n\n${summary}\n\nShip to:\n${[a.name,a.street1,a.street2,`${a.city}, ${a.state} ${a.zip}`,a.country].filter(Boolean).join('\n')}\nEmail: ${a.email}\nPhone: ${a.phone || 'Not supplied'}\n\nPackage:\n${d.parcels.map(p=>`${p.description}\n${p.parcel.length} × ${p.parcel.width} × ${p.parcel.height} in; ${p.parcel.weight} lb`).join('\n')}\n\nPayment provider: ${o.payment_provider || 'square'}\nGateway reference: ${o.payment_provider==='epd'?o.id:o.square_order_id}\nPayment: ${o.payment_id}\n\n${d.auto_label?'A shipping label is being created automatically in Shippo. You will receive a separate label-ready email or an alert if it needs attention. Check the admin page before purchasing postage manually.':'This order uses manual label preparation in Shippo.'} Check the physical packed weight and fit before shipping, then enter tracking and mark fulfilled on the store management page when handed to the carrier.\n\nManage orders: ${env.SITE_URL}/admin.html`});
       if(sent)await run(env,'UPDATE orders SET owner_email_sent=1 WHERE id=?',o.id);
     })()
   ]);
 }
 async function reconcile(env,o) {
+  if(o.payment_provider==='epd') {const payment=await epdLookup(env,o);return payment?finishPayment(env,o,payment):o;}
+  if(!env.SQUARE_ACCESS_TOKEN)return o;
   if (!o.square_order_id) return o;
   const {order}=await square(env,`/orders/${o.square_order_id}`);
   const paymentId=o.payment_id || order.tenders?.find(t=>t.payment_id)?.payment_id;
@@ -82,6 +98,10 @@ async function recoverPayment(env,o) {
   await run(env,'UPDATE orders SET recovery_checked_at=? WHERE id=?',now(),o.id);
   o=await reconcile(env,o);
   if(o.status!=='processing')return o;
+  if(o.payment_provider==='epd') {
+    await run(env,'UPDATE orders SET recovery_note=? WHERE id=?','EPD has not confirmed the result. Do not charge again. Check the gateway using this order ID; contact EPD if needed.',o.id);
+    return first(env,'SELECT * FROM orders WHERE id=?',o.id);
+  }
   if(o.payment_request && o.created_at<now()-120 && o.created_at>now()-PAYMENT_RETRY_SECONDS && (o.recovery_checked_at || 0)<now()-120) {
     try {
       // Never generate another key, amount, token, or payment request during recovery.
@@ -99,6 +119,7 @@ async function cancelUnpaid(env,o) {
   if(o.status!=='processing')fail('Only a processing order can be checked for unpaid cancellation.',409);
   if(o.created_at>now()-120)fail('Wait at least two minutes for the original payment to finish.',409);
   o=await reconcile(env,o);
+  if(o.payment_provider==='epd')fail('An attempted EPD payment cannot be canceled here without a definitive failed result. Check EPD and contact support; no second charge will be attempted.',409);
   if(o.status!=='processing' || o.payment_id)fail('Square has a payment for this order. Review it in Square; do not cancel it here.',409);
   if(o.square_order_id) {
     let {order}=await square(env,`/orders/${o.square_order_id}`);
@@ -130,6 +151,7 @@ async function checkout(req,env,session,ctx) {
     if (o.status==='paid') { ctx.waitUntil(afterPayment(env,o).catch(()=>{})); return json(publicOrder(o)); }
     return json(publicOrder(o),202);
   }
+  if(await first(env,`SELECT id FROM orders WHERE session_hash=? AND status='processing' LIMIT 1`,session))fail('A previous payment is still being checked. Contact us before starting another order.',409,'PAYMENT_PENDING');
   if (q.expires_at<now() || q.status!=='open') fail('Your shipping quote has expired. Please get new rates.',409,'QUOTE_EXPIRED');
   const data=JSON.parse(q.data),rate=data.rates.find(r=>r.id===b.rate_id);
   if(data.shipping_policy!==checkoutPolicy())fail('Shipping settings have changed. Please get new shipping rates.',409,'QUOTE_EXPIRED');
@@ -143,13 +165,14 @@ async function checkout(req,env,session,ctx) {
   try { currentDiscount=await resolveDiscount(env,data.discount?.code || '',data.item_totals.subtotal); } catch { fail('Your discount code has changed. Please get new shipping rates.',409,'QUOTE_EXPIRED'); }
   if (!sameDiscount(currentDiscount,data.discount)) fail('Your discount code has changed. Please get new shipping rates.',409,'QUOTE_EXPIRED');
   const t={...data.item_totals,shipping:rate.amount,total:data.item_totals.total+rate.amount};
-  const d={id:uuid(),lines,address:data.address,rate,totals:t,discount:data.discount || null,parcels:data.parcels,auto_label:env.SHIPPO_AUTO_LABELS==='true'};
-  const insert=await run(env,'INSERT OR IGNORE INTO orders(id,quote_id,session_hash,status,data,created_at,updated_at) VALUES(?,?,?,\'processing\',?,?,?)',d.id,q.id,session,JSON.stringify(d),now(),now());
+  const d={id:uuid(),lines,address:data.address,rate,totals:t,discount:data.discount || null,parcels:data.parcels,auto_label:(env.STORE_MODE==='live' || !isEPD(env)) && env.SHIPPO_AUTO_LABELS==='true'};
+  const insert=await run(env,'INSERT OR IGNORE INTO orders(id,quote_id,session_hash,status,data,created_at,updated_at,payment_provider,payment_environment) VALUES(?,?,?,\'processing\',?,?,?,?,?)',d.id,q.id,session,JSON.stringify(d),now(),now(),isEPD(env)?'epd':'square',env.STORE_MODE);
   if (!insert.meta.changes) return json(publicOrder(await first(env,'SELECT * FROM orders WHERE quote_id=?',q.id)),202);
   o=await first(env,'SELECT * FROM orders WHERE id=?',d.id);
   let paymentStarted=false;
   try {
-    // Conditional inserts serialize competing website reservations in D1. Square is still the authority for POS stock.
+    // Conditional inserts serialize competing website reservations in D1.
+    // EPD stock is allocated to this website; market/POS stock is not synchronized.
     const reservations=await env.DB.batch(lines.map(p=>stmt(env,'INSERT INTO reservations(order_id,slug,quantity) SELECT ?,?,? WHERE ? >= ? + COALESCE((SELECT SUM(quantity) FROM reservations WHERE slug=?),0)',o.id,p.slug,p.quantity,live.find(x=>x.slug===p.slug).stock,p.quantity,p.slug)));
     if (reservations.some(r=>r.meta.changes!==1)) fail('An item just sold out. Please update your bag.',409,'STOCK_CHANGED');
     // Refresh after acquiring reservations to close the gap if another website order just completed.
@@ -159,6 +182,12 @@ async function checkout(req,env,session,ctx) {
       if (!current?.online_enabled || current.stock<(held.find(x=>x.slug===p.slug)?.quantity || p.quantity)) fail('An item just sold out. Please update your bag.',409,'STOCK_CHANGED');
       if (current.price_cents!==p.price_cents) fail('A product price changed. Please get new shipping rates.',409,'QUOTE_EXPIRED');
     }
+    if(isEPD(env)) {
+      await run(env,'UPDATE orders SET payment_attempted=1,updated_at=? WHERE id=?',now(),o.id);
+      paymentStarted=true;
+      const payment=await epdSale(env,o,b.source_id,billing);
+      o=await finishPayment(env,o,payment);
+    } else {
     const {order}=await square(env,'/orders',squareOrder(env,d));
     await run(env,'UPDATE orders SET square_order_id=?,updated_at=? WHERE id=?',order.id,now(),o.id); o.square_order_id=order.id;
     if (Number(order.total_money?.amount)!==t.total || order.total_money?.currency!=='USD') fail('The total changed. Please get a fresh shipping quote.',409,'QUOTE_EXPIRED');
@@ -168,10 +197,11 @@ async function checkout(req,env,session,ctx) {
     paymentStarted=true;
     const {payment}=await square(env,'/payments',request);
     o=await finishPayment(env,o,payment);
+    }
     ctx.waitUntil(afterPayment(env,o).catch(()=>{}));
     return json(publicOrder(o),o.status==='processing'?202:200);
   } catch(error) {
-    const ambiguous=paymentStarted && (!(error instanceof StoreError) || ['SQUARE_UNCERTAIN','PAYMENT_MISMATCH'].includes(error.code));
+    const ambiguous=paymentStarted && (!(error instanceof StoreError) || ['SQUARE_UNCERTAIN','EPD_UNCERTAIN','PAYMENT_MISMATCH'].includes(error.code));
     if (!ambiguous) {
       await env.DB.batch([stmt(env,'UPDATE orders SET status=\'failed\',error_code=?,payment_request=NULL,updated_at=? WHERE id=?',error.code || 'CHECKOUT_ERROR',now(),o.id),stmt(env,'DELETE FROM reservations WHERE order_id=?',o.id),stmt(env,'UPDATE quotes SET status=\'closed\' WHERE id=?',q.id)]);
       // Unpaid Square orders can safely be canceled; failure here does not permit charging.
@@ -189,13 +219,13 @@ async function reviewToken(env,token) {
   if(!past || past.revoked_at || past.expires_at<=now())fail('This review invitation is invalid or has expired. Contact us for help.',403);
   return {id:past.id,past:true,data:JSON.stringify({lines:JSON.parse(past.products_json)})};
 }
-const COMMERCE_PAUSED = true; // Set to false after the replacement payment integration is ready.
+const COMMERCE_PAUSED = false; // Runtime readiness still gates all payments.
 async function route(req,env,ctx,session) {
   const u=new URL(req.url),p=u.pathname;
-  if (COMMERCE_PAUSED && req.method==='POST' && ['/api/quote','/api/checkout'].includes(p)) fail('Online checkout is temporarily unavailable while we transition to a new payment provider. Please email blue.koi.botanicals@gmail.com to order. Orders cannot be shipped until November 19.',503,'COMMERCE_PAUSED');
+  if (COMMERCE_PAUSED && req.method==='POST' && ['/api/quote','/api/checkout'].includes(p)) fail('Online checkout is temporarily unavailable while we transition to a new payment provider. Please email blue.koi.botanicals@gmail.com to order.',503,'COMMERCE_PAUSED');
   if (p==='/api/config' && req.method==='GET') {
     const code=env.DB?await first(env,"SELECT code FROM discount_codes WHERE code='FREESHIP25' AND active=1 AND kind='free_shipping' AND minimum_subtotal_cents=2501"):null;
-    return json({mode:env.STORE_MODE || 'preview',checkout_ready:!COMMERCE_PAUSED && ready(env),square_environment:env.SQUARE_ENVIRONMENT || 'sandbox',application_id:env.SQUARE_APPLICATION_ID || '',location_id:env.SQUARE_LOCATION_ID || '',processing:store.processing_days,free_shipping:{enabled:!!code,code:'FREESHIP25',banner:'Free shipping for the first 50 customers on orders over $25.',terms:'Enter FREESHIP25 below and choose the lowest-priced shipping service. Merchandise subtotal must exceed $25 before tax. Expedited services cost extra. One code per order.'}});
+    return json({mode:env.STORE_MODE || 'preview',checkout_ready:!COMMERCE_PAUSED && ready(env),payment_provider:'epd',tokenization_key:env.EPD_PUBLIC_TOKENIZATION_KEY || '',collect_js_url:isEPD(env) && ready(env)?gatewayOrigin(env)+'/token/Collect.js':'',processing:store.processing_days,free_shipping:{enabled:!!code,code:'FREESHIP25',banner:'Free shipping for the first 50 customers on orders over $25.',terms:'Enter FREESHIP25 below and choose the lowest-priced shipping service. Merchandise subtotal must exceed $25 before tax. Expedited services cost extra. One code per order.'}});
   }
   if (!env.DB) fail('The store database is being configured.',503,'SETUP_REQUIRED');
   if (p==='/api/catalog' && req.method==='GET') {
@@ -220,10 +250,7 @@ async function route(req,env,ctx,session) {
     const lines=makeLines(cart,await catalog(env)); checkDestination(lines,a);
     const beforeDiscount=totals(lines,0,a),discount=await resolveDiscount(env,requestedCode,beforeDiscount.subtotal);
     const expected=totals(lines,0,a,discount?.amount || 0);
-    const [ship,calculated]=await Promise.all([shipping(env,lines,a),square(env,'/orders/calculate',{order:squareOrder(env,{id:uuid(),lines,address:a,totals:expected,discount,rate:{carrier:'',service:''}}).order})]);
-    const itemTotals=expected,tax=Number(calculated.order?.total_tax_money?.amount);
-    if (!Number.isInteger(tax) || tax<0 || Math.abs(tax-itemTotals.tax)>lines.length || Number(calculated.order.total_money?.amount)!==itemTotals.subtotal-itemTotals.discount+tax) fail('The tax total could not be confirmed.',503);
-    itemTotals.tax=tax;itemTotals.total=itemTotals.subtotal-itemTotals.discount+tax;
+    const ship=await shipping(env,lines,a),itemTotals=expected;
     ship.rates=promotionalRates(ship.rates,discount?.kind==='free_shipping' || discount?.free_shipping===true);
     const q={id:uuid(),expires_at:now()+store.quote_minutes*60,data:JSON.stringify({shipping_policy:checkoutPolicy(),lines,address:a,discount,item_totals:itemTotals,...ship})};
     await run(env,'INSERT INTO quotes(id,session_hash,fingerprint,data,created_at,expires_at) VALUES(?,?,?,?,?,?)',q.id,session,fingerprint,q.data,now(),q.expires_at);
@@ -263,14 +290,36 @@ async function route(req,env,ctx,session) {
     return json({message:'Thank you! Your verified purchase review has been submitted for moderation.'},201);
   }
   if (p.startsWith('/api/admin/')) {
-    await limit(env,req,'admin',100); admin(req,env);
+    // Failed logins must not consume the signed-in owner's request budget.
+    // The dashboard loads several endpoints, so reads and edits have separate limits.
+    try { admin(req,env); } catch(error) {
+      await limit(env,req,'admin-auth-failed',30);
+      throw error;
+    }
+    await limit(env,req,req.method==='GET'?'admin-read':'admin-write',req.method==='GET'?1200:300);
     if(p==='/api/admin/past-review-invitations' && req.method==='GET')return json({invitations:await listPastInvitations(env),products:activeProducts.map(p=>({slug:p.slug,name:p.name,size:p.display_size}))});
     if(p==='/api/admin/past-review-invitations' && req.method==='POST') {
       const b=await body(req);
       if(b.action==='create') {await limit(env,req,'past-invitations',30);return json(await createPastInvitation(env,b),201);}
       return json(await pastInvitationAction(env,b));
     }
-    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:(await catalog(env)).filter(p=>p.square_variation_id).length,total:activeProducts.length,missing:['SQUARE_ACCESS_TOKEN','SQUARE_APPLICATION_ID','SQUARE_LOCATION_ID','SHIPPO_API_KEY','SHIP_FROM_JSON','SQUARE_WEBHOOK_SIGNATURE_KEY','RESEND_API_KEY','EMAIL_FROM'].filter(k=>!env[k])});
+    if (p==='/api/admin/status') return json({mode:env.STORE_MODE,checkout_ready:ready(env),owner_email:env.OWNER_EMAIL || store.email,mapped:activeProducts.filter(p=>p.epd_sku).length,total:activeProducts.length,missing:['EPD_PRIVATE_API_KEY','EPD_PUBLIC_TOKENIZATION_KEY','SHIPPO_API_KEY','SHIP_FROM_JSON','RESEND_API_KEY','EMAIL_FROM','ADMIN_TOKEN'].filter(k=>!env[k]),inventory_confirmed:env.INVENTORY_CONFIRMED==='true',live_confirmed:env.LIVE_LAUNCH_CONFIRMED==='true',epd_live_confirmed:env.EPD_LIVE_ACCOUNT_CONFIRMED==='true'});
+    if (p==='/api/admin/inventory' && req.method==='GET') return json({items:(await all(env,'SELECT * FROM website_inventory')).map(row=>({...row,...{name:activeProducts.find(p=>p.slug===row.slug)?.name,size:activeProducts.find(p=>p.slug===row.slug)?.display_size,sku:activeProducts.find(p=>p.slug===row.slug)?.epd_sku}}))});
+    if (p==='/api/admin/inventory' && req.method==='POST') {
+      const b=await body(req);
+      if(!Number.isInteger(b.quantity) || b.quantity<0 || b.quantity>100000 || !Number.isInteger(b.version))fail('Enter a valid stock quantity.');
+      const changed=await run(env,`UPDATE website_inventory SET quantity=?,version=version+1,updated_at=? WHERE slug=? AND version=? AND ?>=COALESCE((SELECT SUM(quantity) FROM reservations WHERE slug=?),0)`,b.quantity,now(),clean(b.slug,100),b.version,b.quantity,clean(b.slug,100));
+      if(!changed.meta.changes)fail('Stock changed or units are reserved by pending payments. Refresh before editing.',409);
+      return json({ok:true,quantity:b.quantity,version:b.version+1});
+    }
+    if (p==='/api/admin/fulfill' && req.method==='POST') {
+      const b=await body(req),o=await first(env,'SELECT * FROM orders WHERE id=?',clean(b.id,50));
+      if(!o || o.status!=='paid' || (o.payment_provider==='epd' && o.payment_environment!=='live'))fail('Only a paid live order can be marked shipped.',409);
+      const tracking=clean(b.tracking,100);if(!tracking)fail('Enter the carrier tracking number.');
+      const data=JSON.parse(o.data);data.tracking=tracking;
+      await run(env,'UPDATE orders SET data=?,fulfilled_at=COALESCE(fulfilled_at,?),updated_at=? WHERE id=?',JSON.stringify(data),now(),now(),o.id);
+      return json({ok:true});
+    }
     if (p==='/api/admin/label-check' && req.method==='POST') {
       const b=await body(req),o=await first(env,'SELECT * FROM orders WHERE id=?',clean(b.id,50));
       if(!o)fail('Order not found.',404);
@@ -279,7 +328,7 @@ async function route(req,env,ctx,session) {
     }
     if (p==='/api/admin/orders' && req.method==='GET') {
       const labels=await all(env,'SELECT * FROM shipping_labels WHERE order_id IN (SELECT id FROM orders ORDER BY created_at DESC LIMIT 100)');
-      return json({orders:(await all(env,'SELECT * FROM orders ORDER BY created_at DESC LIMIT 100')).map(o=>({...publicOrder(o),label:labels.find(l=>l.order_id===o.id) || null,created_at:o.created_at,fulfilled_at:o.fulfilled_at,square_order_id:o.square_order_id,payment_id:o.payment_id,recovery_note:o.recovery_note,email_sent:!!o.email_sent,owner_email_sent:!!o.owner_email_sent,address:JSON.parse(o.data).address,parcels:JSON.parse(o.data).parcels}))});
+      return json({orders:(await all(env,'SELECT * FROM orders ORDER BY created_at DESC LIMIT 100')).map(o=>({...publicOrder(o),label:labels.find(l=>l.order_id===o.id) || null,created_at:o.created_at,fulfilled_at:o.fulfilled_at,payment_provider:o.payment_provider,payment_environment:o.payment_environment,square_order_id:o.square_order_id,payment_id:o.payment_id,recovery_note:o.recovery_note,email_sent:!!o.email_sent,owner_email_sent:!!o.owner_email_sent,address:JSON.parse(o.data).address,parcels:JSON.parse(o.data).parcels}))});
     }
     if (p==='/api/admin/discount-codes' && req.method==='GET') return json({discount_codes:await all(env,'SELECT code,kind,value,minimum_subtotal_cents,free_shipping,active,created_at,updated_at FROM discount_codes ORDER BY active DESC, created_at DESC')});
     if (p==='/api/admin/discount-codes' && req.method==='POST') {
@@ -323,7 +372,7 @@ async function route(req,env,ctx,session) {
   fail('Not found.',404);
 }
 function quoteResponse(q) { const d=JSON.parse(q.data);return json({id:q.id,expires_at:q.expires_at,lines:d.lines.map(p=>({slug:p.slug,name:p.name,size:p.size,quantity:p.quantity,price_cents:p.price_cents})),discount:d.discount || null,item_totals:d.item_totals,rates:d.rates.map(({shippo_rate_ids,carrier_amount,...r})=>r)}); }
-const CSP="default-src 'self'; script-src 'self' https://web.squarecdn.com https://sandbox.web.squarecdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://web.squarecdn.com https://sandbox.web.squarecdn.com; font-src 'self' https://fonts.gstatic.com https://square-fonts-production-f.squarecdn.com https://d1g145x70srn7h.cloudfront.net; img-src 'self' data: https://*.squarecdn.com; connect-src 'self' https://pci-connect.squareup.com https://pci-connect.squareupsandbox.com https://*.squarecdn.com https://o160250.ingest.sentry.io; frame-src https://web.squarecdn.com https://sandbox.web.squarecdn.com https://*.squareup.com https://*.squareupsandbox.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
+const CSP="default-src 'self'; script-src 'self' https://secure.easypaydirectgateway.com https://sandbox.nmi.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://secure.easypaydirectgateway.com https://sandbox.nmi.com; connect-src 'self' https://secure.easypaydirectgateway.com https://sandbox.nmi.com; frame-src https://secure.easypaydirectgateway.com https://sandbox.nmi.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 export default {
   async fetch(req,env,ctx={waitUntil(){}}) {
     const url=new URL(req.url), api=url.pathname.startsWith('/api/');let cookie;
@@ -368,7 +417,7 @@ export async function maintenance(env) {
       await run(env,'UPDATE orders SET recovery_checked_at=? WHERE id=?',now(),o.id);
       if (o.status==='processing' && !o.payment_attempted && !o.payment_id && o.created_at<now()-3600) {
         // No durable payment request means the payment call could not have started.
-        if (o.square_order_id) {
+        if (o.square_order_id && env.SQUARE_ACCESS_TOKEN) {
           const r=await square(env,`/orders/${o.square_order_id}`);
           if (r.order.tenders?.length) {o=await reconcile(env,o);await afterPayment(env,o);continue;}
           if (r.order.state!=='CANCELED')await square(env,`/orders/${o.square_order_id}`,{order:{location_id:env.SQUARE_LOCATION_ID,version:r.order.version,state:'CANCELED'}},'PUT');
